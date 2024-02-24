@@ -9,11 +9,11 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.example.campustouring.databinding.FragmentFirstBinding;
+import com.example.campustouring.databinding.FragmentIntroductionBinding;
 
-public class FirstFragment extends Fragment {
+public class IntroductionFragment extends Fragment {
 
-    private FragmentFirstBinding binding;
+    private FragmentIntroductionBinding binding;
 
     @Override
     public View onCreateView(
@@ -21,7 +21,7 @@ public class FirstFragment extends Fragment {
             Bundle savedInstanceState
     ) {
 
-        binding = FragmentFirstBinding.inflate(inflater, container, false);
+        binding = FragmentIntroductionBinding.inflate(inflater, container, false);
         return binding.getRoot();
 
     }
@@ -29,11 +29,11 @@ public class FirstFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        binding.buttonFirst.setOnClickListener(new View.OnClickListener() {
+        binding.buttonStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                NavHostFragment.findNavController(FirstFragment.this)
-                        .navigate(R.id.action_FirstFragment_to_SecondFragment);
+                NavHostFragment.findNavController(IntroductionFragment.this)
+                        .navigate(R.id.action_IntroductionFragment_to_MapFragment);
             }
         });
     }

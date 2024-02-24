@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(binding.toolbar);
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
+        appBarConfiguration = new AppBarConfiguration.Builder(R.id.IntroductionFragment, R.id.MapFragment, R.id.ARFragment).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
         binding.fab.setVisibility(View.GONE);
@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         navController.addOnDestinationChangedListener(new NavController.OnDestinationChangedListener() {
             @Override
             public void onDestinationChanged(@NonNull NavController navController, @NonNull NavDestination navDestination, @Nullable Bundle bundle) {
-                if (navDestination.getId() == R.id.SecondFragment || navDestination.getId() == R.id.ARFragment) {
+                if (navDestination.getId() == R.id.MapFragment || navDestination.getId() == R.id.ARFragment) {
                     binding.fab.setVisibility(View.VISIBLE);
                 } else {
                     binding.fab.setVisibility(View.GONE);
@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (!isARFragmentShown) {
-                    navController.navigate(R.id.action_SecondFragment_to_ARFragment);
+                    navController.navigate(R.id.action_MapFragment_to_ARFragment);
                     isARFragmentShown = true;
                     binding.fab.setImageResource(android.R.drawable.ic_menu_camera);
                 } else {
@@ -93,7 +93,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onSupportNavigateUp() {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, appBarConfiguration)
-                || super.onSupportNavigateUp();
+        return navController.navigateUp() || super.onSupportNavigateUp();
     }
 }

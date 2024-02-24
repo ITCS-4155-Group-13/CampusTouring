@@ -10,32 +10,35 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.campustouring.databinding.FragmentSecondBinding;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
-public class SecondFragment extends Fragment {
+public class SecondFragment extends Fragment implements OnMapReadyCallback {
 
     private FragmentSecondBinding binding;
+    private GoogleMap gMap;
 
     @Override
-    public View onCreateView(
-            LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState
-    ) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         binding = FragmentSecondBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+        SupportMapFragment mapFragment = SupportMapFragment.newInstance();
+        getChildFragmentManager().beginTransaction().replace(R.id.id_map, mapFragment).commit();
+        mapFragment.getMapAsync(this);
 
+        return binding.getRoot();
     }
 
-    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
-        binding.buttonSecond.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                NavHostFragment.findNavController(SecondFragment.this)
-                        .navigate(R.id.action_SecondFragment_to_FirstFragment);
-            }
-        });
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        LatLng location = new LatLng(35.3071, -80.7352);
+        googleMap.addMarker(new MarkerOptions().position(location).title("UNC Charlotte"));
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 15));
+        this.gMap = googleMap;
     }
 
     @Override
@@ -43,5 +46,4 @@ public class SecondFragment extends Fragment {
         super.onDestroyView();
         binding = null;
     }
-
 }

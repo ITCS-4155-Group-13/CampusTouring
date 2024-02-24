@@ -2,14 +2,14 @@ package com.example.campustouring;
 
 import android.os.Bundle;
 
-import com.google.android.material.snackbar.Snackbar;
-
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.view.View;
 
-import androidx.core.view.WindowCompat;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
@@ -23,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
+    private boolean isARFragmentShown = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,12 +38,32 @@ public class MainActivity extends AppCompatActivity {
         appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
+        binding.fab.setVisibility(View.GONE);
+
+        // Add destination listener to observe navigation changes
+        navController.addOnDestinationChangedListener(new NavController.OnDestinationChangedListener() {
+            @Override
+            public void onDestinationChanged(@NonNull NavController navController, @NonNull NavDestination navDestination, @Nullable Bundle bundle) {
+                if (navDestination.getId() == R.id.SecondFragment || navDestination.getId() == R.id.ARFragment) {
+                    binding.fab.setVisibility(View.VISIBLE);
+                } else {
+                    binding.fab.setVisibility(View.GONE);
+                }
+            }
+        });
+
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAnchorView(R.id.fab)
-                        .setAction("Action", null).show();
+                if (!isARFragmentShown) {
+                    navController.navigate(R.id.action_SecondFragment_to_ARFragment);
+                    isARFragmentShown = true;
+                    binding.fab.setImageResource(android.R.drawable.ic_menu_camera);
+                } else {
+                    navController.popBackStack();
+                    isARFragmentShown = false;
+                    binding.fab.setImageResource(android.R.drawable.ic_dialog_map);
+                }
             }
         });
     }

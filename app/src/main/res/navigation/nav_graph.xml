@@ -8,7 +8,7 @@
     <fragment
         android:id="@+id/FirstFragment"
         android:name="com.example.campustouring.FirstFragment"
-        android:label="@string/first_fragment_label"
+        android:label="@string/introduction"
         tools:layout="@layout/fragment_first">
 
         <action
@@ -18,11 +18,21 @@
     <fragment
         android:id="@+id/SecondFragment"
         android:name="com.example.campustouring.SecondFragment"
-        android:label="@string/second_fragment_label"
+        android:label="@string/map"
         tools:layout="@layout/fragment_second">
 
         <action
-            android:id="@+id/action_SecondFragment_to_FirstFragment"
-            app:destination="@id/FirstFragment" />
+            android:id="@+id/action_SecondFragment_to_ARFragment"
+            app:destination="@id/ARFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/ARFragment"
+        android:name="com.example.campustouring.ARFragment"
+        android:label="AR"
+        tools:layout="@layout/fragment_a_r">
+
+        <action
+            android:id="@+id/action_ARFragment_to_SecondFragment"
+            app:destination="@id/SecondFragment" />
     </fragment>
 </navigation>

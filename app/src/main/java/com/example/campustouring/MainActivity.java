@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Add destination listener to observe navigation changes
         navController.addOnDestinationChangedListener(new NavController.OnDestinationChangedListener() {
+            //override function for ddestination change.
             @Override
             public void onDestinationChanged(@NonNull NavController navController, @NonNull NavDestination navDestination, @Nullable Bundle bundle) {
                 if (navDestination.getId() == R.id.MapFragment || navDestination.getId() == R.id.ARFragment) {

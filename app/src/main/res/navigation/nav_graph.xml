@@ -35,4 +35,10 @@
             android:id="@+id/action_ARFragment_to_MapFragment"
             app:destination="@id/MapFragment" />
     </fragment>
+    <fragment
+        android:id="@+id/SettingsFragment"
+        android:name="com.example.campustouring.SettingsFragment"
+        android:label="@string/action_settings"
+        tools:layout="@layout/fragment_settings">
+    </fragment>
 </navigation>

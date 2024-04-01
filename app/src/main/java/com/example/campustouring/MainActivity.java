@@ -58,11 +58,11 @@ public class MainActivity extends AppCompatActivity {
                 if (!isARFragmentShown) {
                     navController.navigate(R.id.action_MapFragment_to_ARFragment);
                     isARFragmentShown = true;
-                    binding.fab.setImageResource(android.R.drawable.ic_menu_camera);
+                    binding.fab.setImageResource(android.R.drawable.ic_dialog_map);
                 } else {
                     navController.popBackStack();
                     isARFragmentShown = false;
-                    binding.fab.setImageResource(android.R.drawable.ic_dialog_map);
+                    binding.fab.setImageResource(android.R.drawable.ic_menu_camera);
                 }
             }
         });
@@ -84,6 +84,8 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+            navController.navigate(R.id.SettingsFragment);
             return true;
         }
 

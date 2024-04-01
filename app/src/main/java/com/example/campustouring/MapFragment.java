@@ -14,7 +14,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.LatLngBounds;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
@@ -35,8 +35,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         LatLng location = new LatLng(35.3071, -80.7352);
-        googleMap.addMarker(new MarkerOptions().position(location).title("UNC Charlotte"));
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 15));
+        LatLng southWest = new LatLng(35.3040, -80.7400);
+        LatLng northEast = new LatLng(35.3100, -80.7300);
+        LatLngBounds bounds = new LatLngBounds(southWest, northEast);
+        googleMap.setLatLngBoundsForCameraTarget(bounds);
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 16));
+        googleMap.clear();
         this.gMap = googleMap;
     }
 

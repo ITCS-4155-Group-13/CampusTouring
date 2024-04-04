@@ -12,6 +12,7 @@ android {
         targetSdk 34
         versionCode 1
         versionName "1.0"
+        minSdkVersion 24
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -42,4 +43,10 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation 'com.google.ar:core:1.33.0'
+    implementation 'androidx.concurrent:concurrent-futures:1.1.0'
+    implementation 'com.google.guava:guava:31.1-android'
+    implementation 'com.google.android.gms:play-services-location:19.0.1'
+    implementation 'com.google.android.gms:play-services-auth:19.0.0'
+    implementation 'de.javagl:obj:0.4.0'
 }

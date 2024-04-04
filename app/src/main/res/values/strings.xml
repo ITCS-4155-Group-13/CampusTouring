@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">EduTours</string>
+    <string name="app_name">NinerNav</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
     <string name="introduction">Introduction</string>

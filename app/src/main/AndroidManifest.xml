@@ -2,11 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-feature android:name="android.hardware.camera.ar" />
+
+
+    <uses-feature android:name="android.hardware.camera.ar" android:required="true"/>
+
 
     <application
         android:allowBackup="true"
@@ -17,7 +21,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CampusTouring"
-        tools:targetApi="31">
+        tools:targetApi="29">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -26,14 +30,17 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+
+        <meta-data android:name="com.google.ar.core" android:value="required" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDb2Gl7DbYKuPCsaN_gmDVillSA7xnOp7g"/> <!-- Google Maps API Key: AIzaSyB2kYP5_VznrpdGZfa5qLkFthDj6_bRTuc -->
-        <meta-data android:name="com.google.ar.core" android:value="required" />
+            android:value="AIzaSyDb2Gl7DbYKuPCsaN_gmDVillSA7xnOp7g"/> <!-- Google Maps API Key: AIzaSyDb2Gl7DbYKuPCsaN_gmDVillSA7xnOp7g -->
     </application>
 
 </manifest>

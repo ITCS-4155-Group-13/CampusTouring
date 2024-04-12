@@ -201,11 +201,11 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     @Override
     public void onResume() {
-        super.onResume();
+
         if (sharedPreferences.getBoolean(ALLOW_GEOSPATIAL_ACCESS_KEY, /* defValue= */ false)) {
             createSession();
         }
-
+        super.onResume();
         surfaceView.onResume();
     }
 
@@ -355,6 +355,8 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     @Override
     public void onSurfaceChanged(SampleRender render, int width, int height) {
+        displayRotationHelper.onSurfaceChanged(width, height);
+        virtualSceneFramebuffer.resize(width, height);
         Log.i(TAG, "onSurfaceChanged: World");
     }
 

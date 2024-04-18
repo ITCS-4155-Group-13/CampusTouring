@@ -9,6 +9,7 @@ import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.Bundle;
 
+import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -36,11 +37,16 @@ import com.google.ar.core.Config;
 import com.google.ar.core.Earth;
 import com.google.ar.core.Frame;
 import com.google.ar.core.GeospatialPose;
+import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
+import com.google.ar.core.Point;
 import com.google.ar.core.PointCloud;
 import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
+import com.google.ar.core.Trackable;
 import com.google.ar.core.TrackingState;
+import com.google.ar.core.VpsAvailability;
+import com.google.ar.core.VpsAvailabilityFuture;
 import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.FineLocationPermissionNotGrantedException;
 import com.google.ar.core.exceptions.GooglePlayServicesLocationLibraryNotLinkedException;
@@ -53,6 +59,7 @@ import com.google.ar.core.exceptions.UnsupportedConfigurationException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -82,15 +89,17 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     private static final float Z_NEAR = 0.1f;
     private static final float Z_FAR = 1000f;
 
+    private boolean createdPos = false;
+
     // The thresholds that are required for horizontal and orientation accuracies before entering into
     // the LOCALIZED state. Once the accuracies are equal or less than these values, the app will
     // allow the user to place anchors.
-    private static final double LOCALIZING_HORIZONTAL_ACCURACY_THRESHOLD_METERS = 10;
+    private static final double LOCALIZING_HORIZONTAL_ACCURACY_THRESHOLD_METERS = 25;
     private static final double LOCALIZING_ORIENTATION_YAW_ACCURACY_THRESHOLD_DEGREES = 15;
 
     // Once in the LOCALIZED state, if either accuracies degrade beyond these amounts, the app will
     // revert back to the LOCALIZING state.
-    private static final double LOCALIZED_HORIZONTAL_ACCURACY_HYSTERESIS_METERS = 10;
+    private static final double LOCALIZED_HORIZONTAL_ACCURACY_HYSTERESIS_METERS = 25;
     private static final double LOCALIZED_ORIENTATION_YAW_ACCURACY_HYSTERESIS_DEGREES = 10;
 
     private static final int LOCALIZING_TIMEOUT_SECONDS = 180;
@@ -114,6 +123,13 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     // Virtual object (ARCore geospatial terrain)
     private Shader terrainAnchorVirtualObjectShader;
     private final TrackingStateHelper trackingStateHelper = new TrackingStateHelper(getActivity());
+
+    private final Object singleTapLock = new Object();
+
+    @GuardedBy("singleTapLock")
+    private MotionEvent queuedSingleTap;
+
+    private GestureDetector gestureDetector;
 
     private VertexBuffer pointCloudVertexBuffer;
     private long lastPointCloudTimestamp = 0;
@@ -154,7 +170,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
         View view = inflater.inflate(R.layout.fragment_a_r, container, false);
-        //GLSurfaceView surfaceView = view.findViewById(R.id.surfaceview);
 
         return view;
     }
@@ -166,6 +181,25 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
         render = new SampleRender(surfaceView, this, assetManager);
 
+        gestureDetector =
+                new GestureDetector(
+                        getActivity(),
+                        new GestureDetector.SimpleOnGestureListener() {
+                            @Override
+                            public boolean onSingleTapUp(MotionEvent e) {
+                                synchronized (singleTapLock) {
+                                    queuedSingleTap = e;
+                                }
+                                return true;
+                            }
+
+                            @Override
+                            public boolean onDown(MotionEvent e) {
+                                return true;
+                            }
+                        });
+        surfaceView.setOnTouchListener((v, event) -> gestureDetector.onTouchEvent(event));
+
         installRequested = false;
     }
 
@@ -176,8 +210,8 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         assetManager = getActivity().getAssets();
 
 
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(/* context= */ getActivity());
+
         if(session == null){
             if (!sharedPreferences.edit().putBoolean(ALLOW_GEOSPATIAL_ACCESS_KEY, true).commit()) {
                 throw new AssertionError("Could not save the user preference to SharedPreferences!");
@@ -186,6 +220,9 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             createSession();
         }
         displayRotationHelper = new DisplayRotationHelper(/* activity= */ getActivity());
+
+
+
     }
 
 
@@ -208,8 +245,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         super.onResume();
         surfaceView.onResume();
     }
-
-
 
     private void createSession() {
         Exception exception = null;
@@ -297,18 +332,21 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             Log.e(TAG, "Exception configuring and resuming the session", exception);
             return;
         }
+
+
     }
 
     @Override
     public void onSurfaceCreated(SampleRender render) {
         // Prepare the rendering objects. This involves reading shaders and 3D model files, so may throw
         // an IOException.
-        Log.i(TAG, "onSurfaceCreated: Hello");
-        
+
         try {
             planeRenderer = new PlaneRenderer(render);
             backgroundRenderer = new BackgroundRenderer(render);
             virtualSceneFramebuffer = new Framebuffer(render, /* width= */ 1, /* height= */ 1);
+
+
 
             // Virtual object to render (ARCore geospatial)
             Texture virtualObjectTexture =
@@ -357,13 +395,18 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     public void onSurfaceChanged(SampleRender render, int width, int height) {
         displayRotationHelper.onSurfaceChanged(width, height);
         virtualSceneFramebuffer.resize(width, height);
-        Log.i(TAG, "onSurfaceChanged: World");
     }
 
     int count = 0;
     @Override
     public void onDrawFrame(SampleRender render) {
-        Log.i(TAG, "onDrawFrame: " + state);
+        Log.i(TAG, "Num Anchors: " + anchors.size());
+        Log.i(TAG, "Camera Position: " + session.getEarth().getCameraGeospatialPose().getLatitude() + " " + session.getEarth().getCameraGeospatialPose().getLongitude() + " " + session.getEarth().getCameraGeospatialPose().getAltitude());
+
+        for(int i = 0; i < anchors.size(); i++)
+        {
+            Log.i(TAG, "onDrawFrame: Anchor " + i + " " + anchors.get(i).getPose().toString());
+        }
 
         if (session == null) {
             return;
@@ -411,6 +454,9 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             updateGeospatialState(earth);
         }
 
+
+        handleTap(frame, camera.getTrackingState());
+
         // -- Draw background
 
         if (frame.getTimestamp() != 0) {
@@ -423,6 +469,16 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         if (camera.getTrackingState() != TrackingState.TRACKING || state != State.LOCALIZED) {
             return;
         }
+
+        if(!createdPos){
+            Pose newPose = session.getEarth().getPose(37.422017821466056,
+            -122.08422631363099,
+            session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
+            GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
+            createAnchorWithGeospatialPose(session.getEarth(), pose);
+            createdPos = true;
+        }
+
 
         // -- Draw virtual objects
 
@@ -508,10 +564,10 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                                     if (location != null) {
                                         latitude = location.getLatitude();
                                         longitude = location.getLongitude();
-                                        Log.i(TAG, "Lat: " + latitude + " Lng: " + longitude);
                                     } else {
                                         Log.e(TAG, "Error location is null");
                                     }
+                                    checkVpsAvailability(latitude, longitude);
                                 }
                             });
         } catch (SecurityException e) {
@@ -560,12 +616,23 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         return (float) (mapDistance - 2) / (20 - 2) + 1;
     }
 
-
     private void updatePretrackingState(Earth earth) {
         if (earth.getTrackingState() == TrackingState.TRACKING) {
             state = State.LOCALIZING;
             return;
         }
+    }
+
+    private void checkVpsAvailability(double latitude, double longitude) {
+        final VpsAvailabilityFuture future =
+                session.checkVpsAvailabilityAsync(
+                        latitude,
+                        longitude,
+                        availability -> {
+                            if (availability != VpsAvailability.AVAILABLE) {
+
+                            }
+                        });
     }
 
     private void updateLocalizingState(Earth earth) {
@@ -575,7 +642,8 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             synchronized (anchorsLock) {
                 final int anchorNum = anchors.size();
                 if (anchorNum == 0) {
-                    createAnchorFromSharedPreferences(earth);
+                    //createAnchorFromSharedPreferences(earth);
+                    Log.i(TAG, "updateLocalizingState: 0 anchors");
                 }
             }
             return;
@@ -600,9 +668,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             state = State.LOCALIZING;
             localizingStartTimestamp = System.currentTimeMillis();
         }
-
     }
-
 
     private void createAnchor(
             Earth earth, double latitude, double longitude, double altitude, float[] quaternion) {
@@ -615,7 +681,9 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                         quaternion[1],
                         quaternion[2],
                         quaternion[3]);
+        synchronized (anchorsLock) {
             anchors.add(anchor);
+        }
     }
 
     private void configureSession() {
@@ -624,8 +692,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             state = State.UNSUPPORTED;
             return;
         }
-
-
 
         Config config = session.getConfig();
         config = config.setGeospatialMode(Config.GeospatialMode.ENABLED);
@@ -670,5 +736,73 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         double altitude = geospatialPose.getAltitude();
 
         createAnchor(earth, latitude, longitude, altitude, identityQuaternion);
+        storeAnchorParameters(latitude, longitude, altitude, identityQuaternion);
+    }
+
+    private void storeAnchorParameters(
+            double latitude, double longitude, double altitude, float[] quaternion) {
+        Set<String> anchorParameterSet =
+                sharedPreferences.getStringSet(SHARED_PREFERENCES_SAVED_ANCHORS, new HashSet<>());
+        HashSet<String> newAnchorParameterSet = new HashSet<>(anchorParameterSet);
+
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        newAnchorParameterSet.add(
+                String.format(
+                        "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f",
+                        latitude,
+                        longitude,
+                        altitude,
+                        quaternion[0],
+                        quaternion[1],
+                        quaternion[2],
+                        quaternion[3]));
+        editor.putStringSet(SHARED_PREFERENCES_SAVED_ANCHORS, newAnchorParameterSet);
+        editor.commit();
+    }
+
+    private void handleTap(Frame frame, TrackingState cameraTrackingState) {
+        // Handle taps. Handling only one tap per frame, as taps are usually low frequency
+        // compared to frame rate.
+        synchronized (singleTapLock) {
+            synchronized (anchorsLock) {
+                if (queuedSingleTap == null
+                        || anchors.size() >= MAXIMUM_ANCHORS
+                        || cameraTrackingState != TrackingState.TRACKING) {
+                    queuedSingleTap = null;
+                    return;
+                }
+            }
+            Earth earth = session.getEarth();
+            if (earth == null || earth.getTrackingState() != TrackingState.TRACKING) {
+                queuedSingleTap = null;
+                return;
+            }
+
+            Log.i(TAG, "handleTap: Tapped");
+
+            for (HitResult hit : frame.hitTest(queuedSingleTap)) {
+                if (shouldCreateAnchorWithHit(hit)) {
+                    Pose hitPose = hit.getHitPose();
+                    GeospatialPose geospatialPose = earth.getGeospatialPose(hitPose);
+                    createAnchorWithGeospatialPose(earth, geospatialPose);
+
+                    break; // Only handle the first valid hit.
+                }
+            }
+            queuedSingleTap = null;
+        }
+    }
+
+    /** Returns {@code true} if and only if the hit can be used to create an Anchor reliably. */
+    private boolean shouldCreateAnchorWithHit(HitResult hit) {
+        Trackable trackable = hit.getTrackable();
+        if (trackable instanceof Plane) {
+            // Check if the hit was within the plane's polygon.
+            return ((Plane) trackable).isPoseInPolygon(hit.getHitPose());
+        } else if (trackable instanceof Point) {
+            // Check if the hit was against an oriented point.
+            return ((Point) trackable).getOrientationMode() == Point.OrientationMode.ESTIMATED_SURFACE_NORMAL;
+        }
+        return false;
     }
 }

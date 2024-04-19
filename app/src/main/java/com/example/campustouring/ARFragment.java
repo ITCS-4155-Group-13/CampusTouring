@@ -94,12 +94,12 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     // The thresholds that are required for horizontal and orientation accuracies before entering into
     // the LOCALIZED state. Once the accuracies are equal or less than these values, the app will
     // allow the user to place anchors.
-    private static final double LOCALIZING_HORIZONTAL_ACCURACY_THRESHOLD_METERS = 25;
+    private static final double LOCALIZING_HORIZONTAL_ACCURACY_THRESHOLD_METERS = 10;
     private static final double LOCALIZING_ORIENTATION_YAW_ACCURACY_THRESHOLD_DEGREES = 15;
 
     // Once in the LOCALIZED state, if either accuracies degrade beyond these amounts, the app will
     // revert back to the LOCALIZING state.
-    private static final double LOCALIZED_HORIZONTAL_ACCURACY_HYSTERESIS_METERS = 25;
+    private static final double LOCALIZED_HORIZONTAL_ACCURACY_HYSTERESIS_METERS = 10;
     private static final double LOCALIZED_ORIENTATION_YAW_ACCURACY_HYSTERESIS_DEGREES = 10;
 
     private static final int LOCALIZING_TIMEOUT_SECONDS = 180;
@@ -139,7 +139,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     private FusedLocationProviderClient fusedLocationClient;
     private final SnackbarHelper messageSnackbarHelper = new SnackbarHelper();
-
     enum State {
         UNINITIALIZED,
         UNSUPPORTED,
@@ -346,17 +345,15 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             backgroundRenderer = new BackgroundRenderer(render);
             virtualSceneFramebuffer = new Framebuffer(render, /* width= */ 1, /* height= */ 1);
 
-
-
             // Virtual object to render (ARCore geospatial)
             Texture virtualObjectTexture =
                     Texture.createFromAsset(
                             render,
-                            "models/spatial_marker_baked.png",
+                            "models/red_tex.png",
                             Texture.WrapMode.CLAMP_TO_EDGE,
                             Texture.ColorFormat.SRGB);
 
-            virtualObjectMesh = Mesh.createFromAsset(render, "models/geospatial_marker.obj");
+            virtualObjectMesh = Mesh.createFromAsset(render, "models/billboard.obj");
             geospatialAnchorVirtualObjectShader =
                     Shader.createFromAssets(
                                     render,
@@ -400,6 +397,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     int count = 0;
     @Override
     public void onDrawFrame(SampleRender render) {
+        Log.i(TAG, "State: " + state);
         Log.i(TAG, "Num Anchors: " + anchors.size());
         Log.i(TAG, "Camera Position: " + session.getEarth().getCameraGeospatialPose().getLatitude() + " " + session.getEarth().getCameraGeospatialPose().getLongitude() + " " + session.getEarth().getCameraGeospatialPose().getAltitude());
 
@@ -470,10 +468,13 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             return;
         }
 
+
+        float[] heading = camera.getDisplayOrientedPose().getRotationQuaternion();
         if(!createdPos){
-            Pose newPose = session.getEarth().getPose(37.422017821466056,
-            -122.08422631363099,
-            session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
+
+            Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
+            //session.getEarth().getCameraGeospatialPose().getLongitude(), -2, heading[0], heading[1], heading[2], heading[3]);
+            session.getEarth().getCameraGeospatialPose().getLongitude(), 6, 0,0,0,0);
             GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
             createAnchorWithGeospatialPose(session.getEarth(), pose);
             createdPos = true;
@@ -519,22 +520,59 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                 if (anchor.getTrackingState() != TrackingState.TRACKING) {
                     continue;
                 }
+
+                // Convert the anchor's pose to a matrix
                 anchor.getPose().toMatrix(modelMatrix, 0);
+
+                // Apply initial rotation of -90 degrees around the Y-axis
+                float[] initialRotationMatrix = new float[16];
+                Matrix.setRotateM(initialRotationMatrix, 0, 90, 0, 1, 0);
+                Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, initialRotationMatrix, 0);
+
+                // Apply scaling
                 float[] scaleMatrix = new float[16];
                 Matrix.setIdentityM(scaleMatrix, 0);
                 float scale = getScale(anchor.getPose(), camera.getDisplayOrientedPose());
-                scaleMatrix[0] = scale;
-                scaleMatrix[5] = scale;
-                scaleMatrix[10] = scale;
+                scaleMatrix[0] = scale;  // Scale x
+                scaleMatrix[5] = scale;  // Scale y
+                scaleMatrix[10] = scale; // Scale z
                 Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
-                // Rotate the virtual object 180 degrees around the Y axis to make the object face the GL
-                // camera -Z axis, since camera Z axis faces toward users.
-                float[] rotationMatrix = new float[16];
-                Matrix.setRotateM(rotationMatrix, 0, 180, 0.0f, 1.0f, 0.0f);
-                float[] rotationModelMatrix = new float[16];
-                Matrix.multiplyMM(rotationModelMatrix, 0, modelMatrix, 0, rotationMatrix, 0);
-                // Calculate model/view/projection matrices
-                Matrix.multiplyMM(modelViewMatrix, 0, viewMatrix, 0, rotationModelMatrix, 0);
+
+                // Extract the camera position from the view matrix
+                float[] inverseViewMatrix = new float[16];
+                Matrix.invertM(inverseViewMatrix, 0, viewMatrix, 0);
+                float[] cameraPosition = new float[]{
+                        inverseViewMatrix[12],
+                        inverseViewMatrix[13],
+                        inverseViewMatrix[14]
+                };
+
+                // Compute the direction from the anchor to the camera
+                float[] direction = new float[3];
+                direction[0] = cameraPosition[0] - modelMatrix[12];
+                direction[1] = 0;  // Ignore Y component for Y-axis only rotation
+                direction[2] = cameraPosition[2] - modelMatrix[14];
+
+                // Normalize the direction vector
+                float norm = (float) Math.sqrt(direction[0] * direction[0] + direction[2] * direction[2]);
+                direction[0] /= norm;
+                direction[2] /= norm;
+
+                // Calculate angle between model's front (positive Z-axis) and the camera direction on the XZ plane
+                float dot = direction[2];  // Dot product with Z axis (0, 0, 1)
+                float angle = (float) Math.acos(dot);  // Angle between forward vector and camera direction
+                if (direction[0] > 0)  // Adjust angle based on which side the camera is relative to the model
+                    angle = -angle;
+
+                // Create rotation matrix around Y axis
+                float[] yRotationMatrix = new float[16];
+                Matrix.setRotateM(yRotationMatrix, 0, (float) Math.toDegrees(angle), 0, -1, 0);
+
+                // Apply Y-axis rotation
+                Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, yRotationMatrix, 0);
+
+                // Compute the model-view-projection matrix
+                Matrix.multiplyMM(modelViewMatrix, 0, viewMatrix, 0, modelMatrix, 0);
                 Matrix.multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, modelViewMatrix, 0);
 
                 geospatialAnchorVirtualObjectShader.setMat4(
@@ -549,8 +587,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         // Compose the virtual scene with the background.
         backgroundRenderer.drawVirtualScene(render, virtualSceneFramebuffer, Z_NEAR, Z_FAR);
     }
-
-
     private void getLastLocation() {
         try {
             fusedLocationClient
@@ -637,7 +673,9 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     private void updateLocalizingState(Earth earth) {
         GeospatialPose geospatialPose = earth.getCameraGeospatialPose();
-        if (geospatialPose.getHorizontalAccuracy() <= LOCALIZING_HORIZONTAL_ACCURACY_THRESHOLD_METERS) {
+        if (geospatialPose.getHorizontalAccuracy() <= LOCALIZING_HORIZONTAL_ACCURACY_THRESHOLD_METERS
+                && geospatialPose.getOrientationYawAccuracy()
+                <= LOCALIZING_ORIENTATION_YAW_ACCURACY_THRESHOLD_DEGREES) {
             state = State.LOCALIZED;
             synchronized (anchorsLock) {
                 final int anchorNum = anchors.size();
@@ -663,7 +701,10 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         // state.
         if (geospatialPose.getHorizontalAccuracy()
                 > LOCALIZING_HORIZONTAL_ACCURACY_THRESHOLD_METERS
-                + LOCALIZED_HORIZONTAL_ACCURACY_HYSTERESIS_METERS) {
+                + LOCALIZED_HORIZONTAL_ACCURACY_HYSTERESIS_METERS
+                || geospatialPose.getOrientationYawAccuracy()
+                > LOCALIZING_ORIENTATION_YAW_ACCURACY_THRESHOLD_DEGREES
+                + LOCALIZED_ORIENTATION_YAW_ACCURACY_HYSTERESIS_DEGREES) {
             // Accuracies have degenerated, return to the localizing state.
             state = State.LOCALIZING;
             localizingStartTimestamp = System.currentTimeMillis();

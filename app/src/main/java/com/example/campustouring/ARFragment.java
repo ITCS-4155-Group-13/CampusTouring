@@ -85,6 +85,9 @@ import common.samplerender.VertexBuffer;
 import common.samplerender.arcore.BackgroundRenderer;
 import common.samplerender.arcore.PlaneRenderer;
 import com.opencsv.CSVReader;
+
+import org.checkerframework.checker.units.qual.A;
+
 import java.io.IOException;
 import java.io.FileReader;
 
@@ -96,6 +99,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     private static final float Z_NEAR = 0.1f;
     private static final float Z_FAR = 1000f;
 
+    private float minAnchorRange = 10.0f;
     private boolean createdPos = false;
 
     private boolean defaultCreated = false;
@@ -231,9 +235,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             createSession();
         }
         displayRotationHelper = new DisplayRotationHelper(/* activity= */ getActivity());
-
-
-
     }
 
 
@@ -365,7 +366,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                             Texture.WrapMode.CLAMP_TO_EDGE,
                             Texture.ColorFormat.SRGB);
 
-            virtualObjectMesh = Mesh.createFromAsset(render, "models/billboard.obj");
+            virtualObjectMesh = Mesh.createFromAsset(render, "models/tack.obj");
             geospatialAnchorVirtualObjectShader =
                     Shader.createFromAssets(
                                     render,
@@ -413,16 +414,9 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         Log.i(TAG, "Num Anchors: " + anchors.size());
         Log.i(TAG, "Camera Position: " + session.getEarth().getCameraGeospatialPose().getLatitude() + " " + session.getEarth().getCameraGeospatialPose().getLongitude() + " " + session.getEarth().getCameraGeospatialPose().getAltitude());
 
-        for(int i = 0; i < anchors.size(); i++)
-        {
-            Log.i(TAG, "onDrawFrame: Anchor " + i + " " + anchors.get(i).getPose().toString());
-        }
-
         if (session == null) {
             return;
         }
-
-
 
         // Texture names should only be set once on a GL thread unless they change. This is done during
         // onDrawFrame rather than onSurfaceCreated since the session is not guaranteed to have been
@@ -492,6 +486,19 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             createAnchorWithGeospatialPose(session.getEarth(), pose);
             createdPos = true;
         }
+
+
+
+        ArrayList<Anchor> anchorsInRange = getAnchorsInRange(camera.getPose());
+
+        Log.i(TAG, "Anchors In Range: " + anchorsInRange.size());
+
+        for (Anchor anchor: anchorsInRange) {
+            if(isFacingAnchor(camera.getPose(), anchor)){
+                Log.i(TAG, "Facing " + anchor.toString());
+            }
+        }
+
 
 
         // -- Draw virtual objects
@@ -834,31 +841,10 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
             Log.i(TAG, "handleTap: Tapped");
 
-            for (HitResult hit : frame.hitTest(queuedSingleTap)) {
-                if (shouldCreateAnchorWithHit(hit)) {
-                    Pose hitPose = hit.getHitPose();
-                    GeospatialPose geospatialPose = earth.getGeospatialPose(hitPose);
-                    createAnchorWithGeospatialPose(earth, geospatialPose);
-
-                    break; // Only handle the first valid hit.
-                }
-            }
             queuedSingleTap = null;
         }
     }
 
-    /** Returns {@code true} if and only if the hit can be used to create an Anchor reliably. */
-    private boolean shouldCreateAnchorWithHit(HitResult hit) {
-        Trackable trackable = hit.getTrackable();
-        if (trackable instanceof Plane) {
-            // Check if the hit was within the plane's polygon.
-            return ((Plane) trackable).isPoseInPolygon(hit.getHitPose());
-        } else if (trackable instanceof Point) {
-            // Check if the hit was against an oriented point.
-            return ((Point) trackable).getOrientationMode() == Point.OrientationMode.ESTIMATED_SURFACE_NORMAL;
-        }
-        return false;
-    }
     public void loadDefaultPoints() {
         Log.i(TAG, "loadDefaultPoints");
         if (!defaultCreated) {
@@ -907,4 +893,58 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         }
         Log.i(TAG, "loadDefaultPoints COMPLETE");
     }
+
+    private ArrayList<Anchor> getAnchorsInRange(Pose cameraPose) {
+        ArrayList<Anchor> nearbyAnchors = new ArrayList<>();
+        float[] cameraPosition = cameraPose.getTranslation();
+        for (Anchor anchor : anchors) {
+            Pose anchorPose = anchor.getPose();
+            float[] anchorPosition = anchorPose.getTranslation();
+
+            if(calculateDistance(cameraPosition, anchorPosition) < minAnchorRange){
+                nearbyAnchors.add(anchor);
+            }
+            else {
+                nearbyAnchors.remove(anchor);
+            }
+        }
+        return nearbyAnchors;
+    }
+
+    private boolean isFacingAnchor(Pose cameraPose, Anchor anchor){
+        float[] cameraForward = cameraPose.getZAxis();
+        float[] cameraPosition = cameraPose.getTranslation();
+
+        Pose anchorPose = anchor.getPose();
+        float[] anchorPosition = anchorPose.getTranslation();
+
+        float[] directionToAnchor = {
+                anchorPosition[0] - cameraPosition[0],
+                anchorPosition[1] - cameraPosition[1],
+                anchorPosition[2] - cameraPosition[2]
+        };
+
+        float norm = (float) Math.sqrt(directionToAnchor[0] * directionToAnchor[0] + directionToAnchor[1] * directionToAnchor[1] + directionToAnchor[2] * directionToAnchor[2]);
+        directionToAnchor[0] /= norm;
+        directionToAnchor[1] /= norm;
+        directionToAnchor[2] /= norm;
+
+        float dotProduct = cameraForward[0] * directionToAnchor[0] + cameraForward[1] * directionToAnchor[1] + cameraForward[2] * directionToAnchor[2];
+        float threshold = 0.8f;
+
+        if (dotProduct > threshold) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public float calculateDistance(float[] pos1, float[] pos2) {
+        return (float) Math.sqrt(
+                Math.pow(pos1[0] - pos2[0], 2) +
+                        Math.pow(pos1[1] - pos2[1], 2) +
+                        Math.pow(pos1[2] - pos2[2], 2)
+        );
+    }
+
 }

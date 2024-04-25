@@ -58,7 +58,12 @@ import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationExceptio
 import com.google.ar.core.exceptions.UnsupportedConfigurationException;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.Array;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +84,9 @@ import common.samplerender.Texture;
 import common.samplerender.VertexBuffer;
 import common.samplerender.arcore.BackgroundRenderer;
 import common.samplerender.arcore.PlaneRenderer;
-
+import com.opencsv.CSVReader;
+import java.io.IOException;
+import java.io.FileReader;
 
 public class ARFragment extends Fragment implements SampleRender.Renderer {
 
@@ -91,16 +98,21 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     private boolean createdPos = false;
 
+    private boolean defaultCreated = false;
+
+    private List<String> defaultPoints;
+
+
     // The thresholds that are required for horizontal and orientation accuracies before entering into
     // the LOCALIZED state. Once the accuracies are equal or less than these values, the app will
     // allow the user to place anchors.
-    private static final double LOCALIZING_HORIZONTAL_ACCURACY_THRESHOLD_METERS = 10;
-    private static final double LOCALIZING_ORIENTATION_YAW_ACCURACY_THRESHOLD_DEGREES = 15;
+    private static final double LOCALIZING_HORIZONTAL_ACCURACY_THRESHOLD_METERS = 25;
+    private static final double LOCALIZING_ORIENTATION_YAW_ACCURACY_THRESHOLD_DEGREES = 25;
 
     // Once in the LOCALIZED state, if either accuracies degrade beyond these amounts, the app will
     // revert back to the LOCALIZING state.
-    private static final double LOCALIZED_HORIZONTAL_ACCURACY_HYSTERESIS_METERS = 10;
-    private static final double LOCALIZED_ORIENTATION_YAW_ACCURACY_HYSTERESIS_DEGREES = 10;
+    private static final double LOCALIZED_HORIZONTAL_ACCURACY_HYSTERESIS_METERS = 25;
+    private static final double LOCALIZED_ORIENTATION_YAW_ACCURACY_HYSTERESIS_DEGREES = 25;
 
     private static final int LOCALIZING_TIMEOUT_SECONDS = 180;
     private static final int MAXIMUM_ANCHORS = 20;
@@ -467,6 +479,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         if (camera.getTrackingState() != TrackingState.TRACKING || state != State.LOCALIZED) {
             return;
         }
+        loadDefaultPoints();
 
 
         float[] heading = camera.getDisplayOrientedPose().getRotationQuaternion();
@@ -845,5 +858,38 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             return ((Point) trackable).getOrientationMode() == Point.OrientationMode.ESTIMATED_SURFACE_NORMAL;
         }
         return false;
+    }
+    public void loadDefaultPoints() {
+        if (!defaultCreated) {
+            try (CSVReader reader = new CSVReader (new InputStreamReader(getResources().openRawResource(R.raw.master)))){
+                List<String[]> rows = reader.readAll();
+                String[] headers = rows.remove(0); // Remove and store the header row
+                ArrayList<HashMap<String, String>> data = new ArrayList<>();
+
+                for (String[] row : rows) {
+                    HashMap<String, String> rowData = new HashMap<>();
+                    for (int i = 0; i < headers.length; i++) {
+                        rowData.put(headers[i], row[i]);
+                    }
+                    data.add(rowData);
+                }
+                // Print the data
+                for (HashMap<String, String> row : data) {
+                    System.out.println(row);
+                    double rowLat = Double.parseDouble(row.get("Lat"));
+                    double rowLong = Double.parseDouble(row.get("Long"));
+                    Pose newPose = session.getEarth().getPose(rowLat, rowLong,
+                            session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
+                    GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
+                    createAnchorWithGeospatialPose(session.getEarth(), pose);
+                }
+            } catch (Exception ex) {
+                Log.e("TAG", "loadDefaultPoints FAILED");
+                Log.e("TAG", ex.toString());
+            }
+            defaultCreated = true;
+            Log.i(TAG, "loadDefaultPoints SUCCESS");
+        }
+        Log.i(TAG, "loadDefaultPoints COMPLETE");
     }
 }

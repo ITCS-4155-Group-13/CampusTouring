@@ -8,11 +8,11 @@ android {
 
     defaultConfig {
         applicationId "com.example.campustouring"
-        minSdk 24
+        minSdk 26
         targetSdk 34
         versionCode 1
         versionName "1.0"
-        minSdkVersion 24
+        minSdkVersion 26
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -49,6 +49,7 @@ dependencies {
     implementation 'com.google.android.gms:play-services-location:19.0.1'
     implementation 'com.google.android.gms:play-services-auth:19.0.0'
     implementation 'de.javagl:obj:0.4.0'
+    implementation 'com.opencsv:opencsv:4.6'
 
     // ARCore (Google Play Services for AR) library.
 

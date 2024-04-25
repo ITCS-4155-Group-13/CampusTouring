@@ -860,35 +860,50 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         return false;
     }
     public void loadDefaultPoints() {
+        Log.i(TAG, "loadDefaultPoints");
         if (!defaultCreated) {
-            try (CSVReader reader = new CSVReader (new InputStreamReader(getResources().openRawResource(R.raw.master)))){
+            Log.i(TAG, "loadDefaultPoints IF");
+            try (CSVReader reader = new CSVReader (new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')){
+                Log.i(TAG, "loadDefaultPoints TRY");
+
                 List<String[]> rows = reader.readAll();
                 String[] headers = rows.remove(0); // Remove and store the header row
+
                 ArrayList<HashMap<String, String>> data = new ArrayList<>();
 
+                Log.i(TAG, "First loops" + headers);
                 for (String[] row : rows) {
+                    Log.i(TAG, "outer loops");
                     HashMap<String, String> rowData = new HashMap<>();
-                    for (int i = 0; i < headers.length; i++) {
+                    for (int i = 1; i < headers.length; i++) {
+                        Log.i(TAG, "inner loops" + row[i]);
                         rowData.put(headers[i], row[i]);
                     }
                     data.add(rowData);
                 }
+
                 // Print the data
+                Log.i(TAG, "Second loops");
                 for (HashMap<String, String> row : data) {
                     System.out.println(row);
-                    double rowLat = Double.parseDouble(row.get("Lat"));
-                    double rowLong = Double.parseDouble(row.get("Long"));
+                    Log.i(TAG, "loadDefaultPoints VALUE: " + row);
+                    Log.i(TAG, "loadDefaultPoints LATLONG: " + row.get("lat") +" "+ row.get("long"));
+                    double rowLat = Double.parseDouble(row.get("lat"));
+                    double rowLong = Double.parseDouble(row.get("long"));
+                    Log.i(TAG, "lat: " + row.get("lat") + "long: " + row.get("long"));
+                    Log.i(TAG, "rowlat: " + rowLat+ " " + "rowlong: " + rowLong);
                     Pose newPose = session.getEarth().getPose(rowLat, rowLong,
                             session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
                     GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
                     createAnchorWithGeospatialPose(session.getEarth(), pose);
                 }
+
+                Log.i(TAG, "loadDefaultPoints TRY finish: " + data);
             } catch (Exception ex) {
                 Log.e("TAG", "loadDefaultPoints FAILED");
                 Log.e("TAG", ex.toString());
             }
             defaultCreated = true;
-            Log.i(TAG, "loadDefaultPoints SUCCESS");
         }
         Log.i(TAG, "loadDefaultPoints COMPLETE");
     }

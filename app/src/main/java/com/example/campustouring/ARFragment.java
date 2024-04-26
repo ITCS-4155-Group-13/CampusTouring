@@ -360,11 +360,11 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             Texture virtualObjectTexture =
                     Texture.createFromAsset(
                             render,
-                            "models/red_texture.png",
+                            "models/AprilFools_basecolor.png",
                             Texture.WrapMode.CLAMP_TO_EDGE,
                             Texture.ColorFormat.SRGB);
 
-            virtualObjectMesh = Mesh.createFromAsset(render, "models/tack.obj");
+            virtualObjectMesh = Mesh.createFromAsset(render, "models/AprilFoolsPin.obj");
             geospatialAnchorVirtualObjectShader =
                     Shader.createFromAssets(
                                     render,

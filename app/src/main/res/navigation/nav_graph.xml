@@ -10,7 +10,6 @@
         android:name="com.example.campustouring.IntroductionFragment"
         android:label="@string/introduction"
         tools:layout="@layout/fragment_introduction">
-
         <action
             android:id="@+id/action_IntroductionFragment_to_MapFragment"
             app:destination="@id/MapFragment" />

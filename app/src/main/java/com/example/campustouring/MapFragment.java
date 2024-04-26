@@ -30,14 +30,19 @@ import java.util.ArrayList;
 import java.util.List;
 import com.google.android.gms.maps.model.MapStyleOptions;
 
+
+
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private FragmentMapBinding binding;
     private GoogleMap gMap;
 
+    private List<String[]> MasterList = new ArrayList<>();
+    private List<String[]> UserList = new ArrayList<>();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
 
         binding = FragmentMapBinding.inflate(inflater, container, false);
         SupportMapFragment mapFragment = SupportMapFragment.newInstance();
@@ -56,15 +61,17 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.setLatLngBoundsForCameraTarget(bounds);
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 16));
         googleMap.clear();
+        loadCSVFiles();
+        // load csv files
 
-        // load
-        loadCSVFiles(googleMap);
 
+        //place all the points from
         placePoints(MasterList, googleMap);
         //placePoints(UserList, googleMap);
 
-        googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-        buildMasterPointList(googleMap);
+        //may be used later not sure what for
+        //googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {}
+
         googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(getContext(), R.raw.empty_map_style));
         googleMap.setInfoWindowAdapter(new CustomInfoWindow(getContext()));
         googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
@@ -111,12 +118,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             }
         }
 
-    public void loadCSVFiles(@NonNull GoogleMap googleMap){
-        //List<String[]> MasterList = new ArrayList<>();
-        //List<String[]> UserList = new ArrayList<>();
-
-    }
-
+    public void loadCSVFiles(){
         try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
             String[] line;
             while ((line = reader.readNext()) != null) {
@@ -141,20 +143,16 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        placeMasterPoints(MasterList, googleMap);
+
     }
     public void placePoints(List<String[]> MasterList, GoogleMap googleMap ){
         Log.d("placePointsMaster", MasterList.toString());
         String[] headers = MasterList.remove(0);
         for(String[] Location : MasterList) {
             String name = Location[2];
-
-            for (String data : Location) {
-                Log.d("Location", data);
-            }
             float color =0;
-
-
+            Log.d("crash point", name);
+            String snippet = Location[0];
             double lat = Double.parseDouble(Location[4]);
             double log = Double.parseDouble(Location[5]);
 
@@ -162,11 +160,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             Log.d("cords",cords.toString());
             googleMap.addMarker(new MarkerOptions()
                     .position(cords)
-                    .title(name)
-                    .snippet(snippet));
+                    .snippet(snippet)
+                    .title(name));
         }
-    }
-
     }
     @Override
     public void onDestroyView() {

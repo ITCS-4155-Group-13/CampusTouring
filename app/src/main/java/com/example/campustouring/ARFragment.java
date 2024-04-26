@@ -90,6 +90,7 @@ import org.checkerframework.checker.units.qual.A;
 
 import java.io.IOException;
 import java.io.FileReader;
+import java.util.function.BiConsumer;
 
 public class ARFragment extends Fragment implements SampleRender.Renderer {
 
@@ -106,6 +107,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     private List<String> defaultPoints;
 
+    private HashMap<Integer, Pose> loadedAnchors = new HashMap<>();
 
     // The thresholds that are required for horizontal and orientation accuracies before entering into
     // the LOCALIZED state. Once the accuracies are equal or less than these values, the app will
@@ -127,7 +129,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     private DisplayRotationHelper displayRotationHelper;
     private GLSurfaceView surfaceView;
     private boolean installRequested;
-    private final List<Anchor> anchors = new ArrayList<>();
+    private final HashMap<Integer, Anchor> anchors = new HashMap<>();
     private long localizingStartTimestamp;
 
     private PlaneRenderer planeRenderer;
@@ -179,13 +181,11 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     private AssetManager assetManager;
 
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
         View view = inflater.inflate(R.layout.fragment_a_r, container, false);
-
         return view;
     }
 
@@ -344,8 +344,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             Log.e(TAG, "Exception configuring and resuming the session", exception);
             return;
         }
-
-
     }
 
     @Override
@@ -407,7 +405,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         virtualSceneFramebuffer.resize(width, height);
     }
 
-    int count = 0;
     @Override
     public void onDrawFrame(SampleRender render) {
         Log.i(TAG, "State: " + state);
@@ -475,32 +472,32 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         }
         loadDefaultPoints();
 
-
-        float[] heading = camera.getDisplayOrientedPose().getRotationQuaternion();
         if(!createdPos){
-
             Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
-            //session.getEarth().getCameraGeospatialPose().getLongitude(), -2, heading[0], heading[1], heading[2], heading[3]);
-            session.getEarth().getCameraGeospatialPose().getLongitude(), 6, 0,0,0,0);
+            session.getEarth().getCameraGeospatialPose().getLongitude(),
+                    session.getEarth().getCameraGeospatialPose().getAltitude(),
+                    0,0,0,0);
             GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
-            createAnchorWithGeospatialPose(session.getEarth(), pose);
+            createAnchorWithGeospatialPose(-1, session.getEarth(), pose);
             createdPos = true;
         }
 
-
-
-        ArrayList<Anchor> anchorsInRange = getAnchorsInRange(camera.getPose());
-
-        Log.i(TAG, "Anchors In Range: " + anchorsInRange.size());
-
-        for (Anchor anchor: anchorsInRange) {
-            if(isFacingAnchor(camera.getPose(), anchor)){
-                Log.i(TAG, "Facing " + anchor.toString());
+        for (HashMap.Entry<Integer, Pose> entry : loadedAnchors.entrySet()) {
+            if(calculateDistance(camera.getPose().getTranslation(), entry.getValue().getTranslation()) < minAnchorRange) {
+                GeospatialPose pose = session.getEarth().getGeospatialPose(entry.getValue());
+                createAnchorWithGeospatialPose(entry.getKey(), session.getEarth(), pose);
+            }
+            else {
+                anchors.remove(entry.getKey());
             }
         }
 
-
-
+        for(HashMap.Entry<Integer, Anchor> entry: anchors.entrySet()){
+            if(isFacingAnchor(camera.getPose(), entry.getValue())){
+                Log.i(TAG, "Facing " + entry.getKey() + " : " + entry.getValue().toString());
+                // if tapped send int associated with anchor to info frame
+            }
+        }
         // -- Draw virtual objects
 
         // Get projection matrix.
@@ -533,75 +530,40 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
         render.clear(virtualSceneFramebuffer, 0f, 0f, 0f, 0f);
         synchronized (anchorsLock) {
-            for (Anchor anchor : anchors) {
+
+            for(HashMap.Entry<Integer, Anchor> entry : anchors.entrySet()) {
                 // Get the current pose of an Anchor in world space. The Anchor pose is updated
                 // during calls to session.update() as ARCore refines its estimate of the world.
-                // Only render resolved Terrain & Rooftop anchors and Geospatial anchors.
-                if (anchor.getTrackingState() != TrackingState.TRACKING) {
+                if (entry.getValue().getTrackingState() != TrackingState.TRACKING) {
                     continue;
                 }
 
                 // Convert the anchor's pose to a matrix
-                anchor.getPose().toMatrix(modelMatrix, 0);
+                entry.getValue().getPose().toMatrix(modelMatrix, 0);
 
-                // Apply initial rotation of -90 degrees around the Y-axis
-                float[] initialRotationMatrix = new float[16];
-                Matrix.setRotateM(initialRotationMatrix, 0, 90, 0, 1, 0);
-                Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, initialRotationMatrix, 0);
-
-                // Apply scaling
+                entry.getValue().getPose().toMatrix(modelMatrix, 0);
                 float[] scaleMatrix = new float[16];
                 Matrix.setIdentityM(scaleMatrix, 0);
-                float scale = getScale(anchor.getPose(), camera.getDisplayOrientedPose());
-                scaleMatrix[0] = scale;  // Scale x
-                scaleMatrix[5] = scale;  // Scale y
-                scaleMatrix[10] = scale; // Scale z
+                float scale = getScale(entry.getValue().getPose(), camera.getDisplayOrientedPose());
+                scaleMatrix[0] = scale;
+                scaleMatrix[5] = scale;
+                scaleMatrix[10] = scale;
                 Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
-
-                // Extract the camera position from the view matrix
-                float[] inverseViewMatrix = new float[16];
-                Matrix.invertM(inverseViewMatrix, 0, viewMatrix, 0);
-                float[] cameraPosition = new float[]{
-                        inverseViewMatrix[12],
-                        inverseViewMatrix[13],
-                        inverseViewMatrix[14]
-                };
-
-                // Compute the direction from the anchor to the camera
-                float[] direction = new float[3];
-                direction[0] = cameraPosition[0] - modelMatrix[12];
-                direction[1] = 0;  // Ignore Y component for Y-axis only rotation
-                direction[2] = cameraPosition[2] - modelMatrix[14];
-
-                // Normalize the direction vector
-                float norm = (float) Math.sqrt(direction[0] * direction[0] + direction[2] * direction[2]);
-                direction[0] /= norm;
-                direction[2] /= norm;
-
-                // Calculate angle between model's front (positive Z-axis) and the camera direction on the XZ plane
-                float dot = direction[2];  // Dot product with Z axis (0, 0, 1)
-                float angle = (float) Math.acos(dot);  // Angle between forward vector and camera direction
-                if (direction[0] > 0)  // Adjust angle based on which side the camera is relative to the model
-                    angle = -angle;
-
-                // Create rotation matrix around Y axis
-                float[] yRotationMatrix = new float[16];
-                Matrix.setRotateM(yRotationMatrix, 0, (float) Math.toDegrees(angle), 0, -1, 0);
-
-                // Apply Y-axis rotation
-                Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, yRotationMatrix, 0);
-
-                // Compute the model-view-projection matrix
-                Matrix.multiplyMM(modelViewMatrix, 0, viewMatrix, 0, modelMatrix, 0);
+                // Rotate the virtual object 180 degrees around the Y axis to make the object face the GL
+                // camera -Z axis, since camera Z axis faces toward users.
+                float[] rotationMatrix = new float[16];
+                Matrix.setRotateM(rotationMatrix, 0, 180, 0.0f, 1.0f, 0.0f);
+                float[] rotationModelMatrix = new float[16];
+                Matrix.multiplyMM(rotationModelMatrix, 0, modelMatrix, 0, rotationMatrix, 0);
+                // Calculate model/view/projection matrices
+                Matrix.multiplyMM(modelViewMatrix, 0, viewMatrix, 0, rotationModelMatrix, 0);
                 Matrix.multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, modelViewMatrix, 0);
 
                 geospatialAnchorVirtualObjectShader.setMat4(
                         "u_ModelViewProjection", modelViewProjectionMatrix);
                 render.draw(
                         virtualObjectMesh, geospatialAnchorVirtualObjectShader, virtualSceneFramebuffer);
-
             }
-
         }
 
         // Compose the virtual scene with the background.
@@ -712,7 +674,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             state = State.LOCALIZING_FAILED;
             return;
         }
-
     }
 
     private void updateLocalizedState(Earth earth) {
@@ -732,7 +693,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     }
 
     private void createAnchor(
-            Earth earth, double latitude, double longitude, double altitude, float[] quaternion) {
+            int index, Earth earth, double latitude, double longitude, double altitude, float[] quaternion) {
         Anchor anchor =
                 earth.createAnchor(
                         latitude,
@@ -743,7 +704,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                         quaternion[2],
                         quaternion[3]);
         synchronized (anchorsLock) {
-            anchors.add(anchor);
+            anchors.put(index, anchor);
         }
     }
 
@@ -761,42 +722,13 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         localizingStartTimestamp = System.currentTimeMillis();
     }
 
-    /** Creates all anchors that were stored in the {@link SharedPreferences}. */
-    private void createAnchorFromSharedPreferences(Earth earth) {
-        Set<String> anchorParameterSet =
-                sharedPreferences.getStringSet(SHARED_PREFERENCES_SAVED_ANCHORS, null);
-        if (anchorParameterSet == null) {
-            return;
-        }
 
-        for (String anchorParameters : anchorParameterSet) {
-            String[] parameters = anchorParameters.split(",");
-            if (parameters.length != 7) {
-                Log.d(
-                        TAG, "Invalid number of anchor parameters. Expected four, found " + parameters.length);
-                continue;
-            }
-            double latitude = Double.parseDouble(parameters[0]);
-            double longitude = Double.parseDouble(parameters[1]);
-            double altitude = Double.parseDouble(parameters[2]);
-            float[] quaternion =
-                    new float[] {
-                            Float.parseFloat(parameters[3]),
-                            Float.parseFloat(parameters[4]),
-                            Float.parseFloat(parameters[5]),
-                            Float.parseFloat(parameters[6])
-                    };
-
-            createAnchor(earth, latitude, longitude, altitude, quaternion);
-        }
-    }
-
-    private void createAnchorWithGeospatialPose(Earth earth, GeospatialPose geospatialPose) {
+    private void createAnchorWithGeospatialPose(int index, Earth earth, GeospatialPose geospatialPose) {
         double latitude = geospatialPose.getLatitude();
         double longitude = geospatialPose.getLongitude();
         double altitude = geospatialPose.getAltitude();
 
-        createAnchor(earth, latitude, longitude, altitude, identityQuaternion);
+        createAnchor(index, earth, latitude, longitude, altitude, identityQuaternion);
         storeAnchorParameters(latitude, longitude, altitude, identityQuaternion);
     }
 
@@ -861,7 +793,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                 for (String[] row : rows) {
                     Log.i(TAG, "outer loops");
                     HashMap<String, String> rowData = new HashMap<>();
-                    for (int i = 1; i < headers.length; i++) {
+                    for (int i = 0; i < headers.length; i++) {
                         Log.i(TAG, "inner loops" + row[i]);
                         rowData.put(headers[i], row[i]);
                     }
@@ -880,8 +812,8 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                     Log.i(TAG, "rowlat: " + rowLat+ " " + "rowlong: " + rowLong);
                     Pose newPose = session.getEarth().getPose(rowLat, rowLong,
                             session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
-                    GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
-                    createAnchorWithGeospatialPose(session.getEarth(), pose);
+
+                    loadedAnchors.put(Integer.parseInt(row.get("index")), newPose);
                 }
 
                 Log.i(TAG, "loadDefaultPoints TRY finish: " + data);
@@ -894,22 +826,22 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         Log.i(TAG, "loadDefaultPoints COMPLETE");
     }
 
-    private ArrayList<Anchor> getAnchorsInRange(Pose cameraPose) {
-        ArrayList<Anchor> nearbyAnchors = new ArrayList<>();
-        float[] cameraPosition = cameraPose.getTranslation();
-        for (Anchor anchor : anchors) {
-            Pose anchorPose = anchor.getPose();
-            float[] anchorPosition = anchorPose.getTranslation();
-
-            if(calculateDistance(cameraPosition, anchorPosition) < minAnchorRange){
-                nearbyAnchors.add(anchor);
-            }
-            else {
-                nearbyAnchors.remove(anchor);
-            }
-        }
-        return nearbyAnchors;
-    }
+//    private ArrayList<Anchor> getAnchorsInRange(Pose cameraPose) {
+//        ArrayList<Anchor> nearbyAnchors = new ArrayList<>();
+//        float[] cameraPosition = cameraPose.getTranslation();
+//        for (Anchor anchor : anchors) {
+//            Pose anchorPose = anchor.getPose();
+//            float[] anchorPosition = anchorPose.getTranslation();
+//
+//            if(calculateDistance(cameraPosition, anchorPosition) < minAnchorRange){
+//                nearbyAnchors.add(anchor);
+//            }
+//            else {
+//                nearbyAnchors.remove(anchor);
+//            }
+//        }
+//        return nearbyAnchors;
+//    }
 
     private boolean isFacingAnchor(Pose cameraPose, Anchor anchor){
         float[] cameraForward = cameraPose.getZAxis();

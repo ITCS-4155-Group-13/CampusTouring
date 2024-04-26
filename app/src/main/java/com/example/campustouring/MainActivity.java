@@ -26,7 +26,13 @@ import com.google.android.gms.location.LocationServices;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import common.samplerender.SampleRender;
+
+
 
 public class MainActivity extends AppCompatActivity{
 
@@ -40,7 +46,6 @@ public class MainActivity extends AppCompatActivity{
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
 
         setSupportActionBar(binding.toolbar);
 

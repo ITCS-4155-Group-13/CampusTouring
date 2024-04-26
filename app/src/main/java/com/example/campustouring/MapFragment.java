@@ -61,6 +61,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.setLatLngBoundsForCameraTarget(bounds);
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 16));
         googleMap.clear();
+        MasterList.clear();
         loadCSVFiles();
         // load csv files
 
@@ -146,22 +147,27 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     }
     public void placePoints(List<String[]> MasterList, GoogleMap googleMap ){
-        Log.d("placePointsMaster", MasterList.toString());
-        String[] headers = MasterList.remove(0);
+        Log.i("TAG", "We continue to be starting in this bitch");
+        boolean firstFlag = false;
+        Log.i("firstFlag", firstFlag + "");
         for(String[] Location : MasterList) {
-            String name = Location[2];
-            float color =0;
-            Log.d("crash point", name);
-            String snippet = Location[0];
-            double lat = Double.parseDouble(Location[4]);
-            double log = Double.parseDouble(Location[5]);
+            Log.i("firstFlag", firstFlag + "");
+            if(firstFlag) {
+                String name = Location[1];
+                String snippet = Location[0];
+                Log.i("TAG", "MAP LATITUDE" + Location[4]);
+                Log.i("TAG", "MAP LONGITUDE" + Location[5]);
+                double lat = Double.parseDouble(Location[4]);
+                double log = Double.parseDouble(Location[5]);
+                LatLng coords = new LatLng(lat, log);
 
-            LatLng cords = new LatLng(lat,log);
-            Log.d("cords",cords.toString());
-            googleMap.addMarker(new MarkerOptions()
-                    .position(cords)
-                    .snippet(snippet)
-                    .title(name));
+                googleMap.addMarker(new MarkerOptions()
+                        .position(coords)
+                        .title(name)
+                        .snippet(snippet));
+                Log.i("TAG", "We done in this bitch");
+            }
+            firstFlag = true;
         }
     }
     @Override

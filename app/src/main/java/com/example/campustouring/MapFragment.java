@@ -27,14 +27,19 @@ import java.util.ArrayList;
 import java.util.List;
 import com.google.android.gms.maps.model.MapStyleOptions;
 
+
+
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private FragmentMapBinding binding;
     private GoogleMap gMap;
 
+    private List<String[]> MasterList = new ArrayList<>();
+    private List<String[]> UserList = new ArrayList<>();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
 
         binding = FragmentMapBinding.inflate(inflater, container, false);
         SupportMapFragment mapFragment = SupportMapFragment.newInstance();
@@ -53,7 +58,18 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.setLatLngBoundsForCameraTarget(bounds);
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 16));
         googleMap.clear();
-        buildMasterPointList(googleMap);
+        MasterList.clear();
+        loadCSVFiles();
+        // load csv files
+
+
+        //place all the points from
+        placePoints(MasterList, googleMap);
+        //placePoints(UserList, googleMap);
+
+        //may be used later not sure what for
+        //googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {}
+
         googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(getContext(), R.raw.empty_map_style));
         googleMap.setInfoWindowAdapter(new CustomInfoWindow(getContext()));
         googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
@@ -79,50 +95,55 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         this.gMap = googleMap;
     }
 
-    public class CustomInfoWindow implements GoogleMap.InfoWindowAdapter {
+        public class CustomInfoWindow implements GoogleMap.InfoWindowAdapter {
 
-        View CustomView;
+            View CustomView;
 
-        public CustomInfoWindow(Context context) {
-            CustomView = LayoutInflater.from(context).inflate(R.layout.custom_marker_view, null);
+            public CustomInfoWindow(Context context) {
+                CustomView = LayoutInflater.from(context).inflate(R.layout.custom_marker_view, null);
+            }
+
+            @Override
+            public View getInfoWindow(Marker marker) {
+                TextView customTitle = CustomView.findViewById(R.id.customTitleTextView);
+                customTitle.setText(marker.getTitle());
+                return CustomView;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+                return null;
+            }
         }
 
-        @Override
-        public View getInfoWindow(Marker marker) {
-            TextView customTitle = CustomView.findViewById(R.id.customTitleTextView);
-            customTitle.setText(marker.getTitle());
-            return CustomView;
-        }
-
-        @Override
-        public View getInfoContents(Marker marker) {
-            return null;
-        }
-    }
-
-
-    public void buildMasterPointList(@NonNull GoogleMap googleMap){
-        List<String[]> MasterList = new ArrayList<>();
-
-        try (CSVReader reader = new CSVReader (new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
+    public void loadCSVFiles(){
+        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
             String[] line;
             while ((line = reader.readNext()) != null) {
                 // 'line' contains the data for one row
                 // You can process it as needed
                 MasterList.add(line);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.users)), '~')) {
+            String[] line;
+            while ((line = reader.readNext()) != null) {
+                // 'line' contains the data for one row
+                // You can process it as needed
+                UserList.add(line);
+
                 for (String data : line) {
                     Log.d("CSVReader", data);
                 }
             }
         } catch (Exception e) {
-            Log.i("TAG", "this bitch broken");
             e.printStackTrace();
         }
-        Log.i("TAG", "We starting in this bitch");
-        Log.i("TAG", "masterlist" + MasterList);
-        placeMasterPoints(MasterList, googleMap);
+
     }
-    public void placeMasterPoints(List<String[]> MasterList, GoogleMap googleMap ){
+    public void placePoints(List<String[]> MasterList, GoogleMap googleMap ){
         Log.i("TAG", "We continue to be starting in this bitch");
         boolean firstFlag = false;
         Log.i("firstFlag", firstFlag + "");
@@ -146,7 +167,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             firstFlag = true;
         }
     }
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();

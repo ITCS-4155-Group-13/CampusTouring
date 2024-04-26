@@ -1,13 +1,16 @@
 package com.example.campustouring;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import com.example.campustouring.databinding.FragmentMapBinding;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -16,15 +19,13 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.opencsv.CSVReader;
-
-import java.io.FileReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import com.google.android.gms.maps.model.MapStyleOptions;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
@@ -53,14 +54,57 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 16));
         googleMap.clear();
         buildMasterPointList(googleMap);
+        googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(getContext(), R.raw.empty_map_style));
+        googleMap.setInfoWindowAdapter(new CustomInfoWindow(getContext()));
+        googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+            @Override
+            public void onInfoWindowClick(Marker marker) {
+                marker.hideInfoWindow();
+            }
+        });
+        googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+
+            @Override
+            public void onInfoWindowClick(@NonNull Marker marker) {
+                Bundle args = new Bundle();
+                args.putString("title", marker.getTitle());
+                args.putString("snippet", marker.getSnippet());
+
+                Navigation.findNavController(requireView()).navigate(
+                        R.id.action_MapFragment_to_MarkerInfoFragment,
+                        args
+                );
+            }
+        });
         this.gMap = googleMap;
     }
-    public void buildMasterPointList(@NonNull GoogleMap googleMap){
 
-        String csvFile = "master.csv";
+    public class CustomInfoWindow implements GoogleMap.InfoWindowAdapter {
+
+        View CustomView;
+
+        public CustomInfoWindow(Context context) {
+            CustomView = LayoutInflater.from(context).inflate(R.layout.custom_marker_view, null);
+        }
+
+        @Override
+        public View getInfoWindow(Marker marker) {
+            TextView customTitle = CustomView.findViewById(R.id.customTitleTextView);
+            customTitle.setText(marker.getTitle());
+            return CustomView;
+        }
+
+        @Override
+        public View getInfoContents(Marker marker) {
+            return null;
+        }
+    }
+
+
+    public void buildMasterPointList(@NonNull GoogleMap googleMap){
         List<String[]> MasterList = new ArrayList<>();
 
-        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)))) {
+        try (CSVReader reader = new CSVReader (new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
             String[] line;
             while ((line = reader.readNext()) != null) {
                 // 'line' contains the data for one row
@@ -73,28 +117,23 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        Log.d("Master",MasterList.toString());
-
         placeMasterPoints(MasterList, googleMap);
     }
     public void placeMasterPoints(List<String[]> MasterList, GoogleMap googleMap ){
-       LatLng location = new LatLng(35.30293891,-80.73356588);
-
         for(String[] Location : MasterList) {
-            String name = Location[2];
-            for (String data : Location) {
-                Log.d("Location", data);
-            }
-
+            String name = Location[1];
+            String snippet = Location[0];
             double lat = Double.parseDouble(Location[4]);
             double log = Double.parseDouble(Location[5]);
             LatLng coords = new LatLng(lat,log);
-            Log.d("cords",coords.toString());
+
             googleMap.addMarker(new MarkerOptions()
                     .position(coords)
-                    .title(name));
+                    .title(name)
+                    .snippet(snippet));
         }
     }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();

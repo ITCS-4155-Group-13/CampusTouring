@@ -4,11 +4,22 @@
     <!-- Strings used for fragments for navigation -->
     <string name="introduction">Introduction</string>
     <string name="map">Map</string>
+    <string name="markerinfo">Building Details</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
     <string name="start">Start</string>
 
+    <string name="titleText">Title</string>
+    <string name="subTitleText">Sub-Title</string>
+    <string name="descriptionText">Description</string>
+    <string name="editText">Edit</string>
+    <string name="saveText">Save</string>
+    <string name="deleteText">Delete</string>
+
+
     <string name="app_description">
         Traditional campus tours can be overwhelming, leaving participants struggling to absorb all the information provided. With EduTours, you no longer need to rely on scheduled tour times or tour guides to explore the campus. Our augmented reality map application puts the power in your hands, allowing you to discover campus landmarks, historical buildings, eateries, and hidden gems at your own pace.
     </string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

@@ -24,6 +24,10 @@
         <action
             android:id="@+id/action_MapFragment_to_ARFragment"
             app:destination="@id/ARFragment" />
+
+        <action
+            android:id="@+id/action_MapFragment_to_MarkerInfoFragment"
+            app:destination="@id/MarkerInfoFragment" />
     </fragment>
     <fragment
         android:id="@+id/ARFragment"
@@ -40,5 +44,14 @@
         android:name="com.example.campustouring.SettingsFragment"
         android:label="@string/action_settings"
         tools:layout="@layout/fragment_settings">
+    </fragment>
+    <fragment
+        android:id="@+id/MarkerInfoFragment"
+        android:name="com.example.campustouring.MarkerInfoFragment"
+        android:label="@string/markerinfo"
+        tools:layout="@layout/fragment_marker_info">
+        <action
+            android:id="@+id/action_MarkerInfoFragment_to_MapFragment"
+            app:destination="@id/ARFragment" />
     </fragment>
 </navigation>

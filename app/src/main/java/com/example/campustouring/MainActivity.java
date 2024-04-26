@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity{
                     navController.navigate(R.id.action_MapFragment_to_ARFragment);
                     isARFragmentShown = true;
                     binding.fab.setImageResource(android.R.drawable.ic_dialog_map);
-                } else {
+                  } else {
                     navController.popBackStack();
                     isARFragmentShown = false;
                     binding.fab.setImageResource(android.R.drawable.ic_menu_camera);

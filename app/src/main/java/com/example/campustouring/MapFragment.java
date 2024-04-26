@@ -65,7 +65,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         loadCSVFiles(googleMap);
 
         placePoints(MasterList, googleMap);
-        placePoints(UserList, googleMap);
+        //placePoints(UserList, googleMap);
 
         googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
 
@@ -88,7 +88,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         //List<String[]> MasterList = new ArrayList<>();
         //List<String[]> UserList = new ArrayList<>();
 
-        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)))) {
+        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
             String[] line;
             while ((line = reader.readNext()) != null) {
                 // 'line' contains the data for one row
@@ -98,7 +98,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.users)))) {
+        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.users)), '~')) {
             String[] line;
             while ((line = reader.readNext()) != null) {
                 // 'line' contains the data for one row
@@ -115,7 +115,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         //placeMasterPoints(UserList, googleMap);
     }
     public void placePoints(List<String[]> MasterList, GoogleMap googleMap ){
-
+        Log.d("placePointsMaster", MasterList.toString());
+        String[] headers = MasterList.remove(0);
         for(String[] Location : MasterList) {
             String name = Location[2];
 
@@ -123,20 +124,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 Log.d("Location", data);
             }
             float color =0;
-            switch (Location[6]) {
-                case "1":
-                    color = 120; break;
-                case "2":
-                    color= 210; break;
-                case "3":
-                    color= 60; break;
-                case "4":
-                    color = 180; break;
-                case "5":
-                    color = 30; break;
-                default:
-                    color =0;
-            }
+
 
             double lat = Double.parseDouble(Location[4]);
             double log = Double.parseDouble(Location[5]);

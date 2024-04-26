@@ -360,7 +360,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             Texture virtualObjectTexture =
                     Texture.createFromAsset(
                             render,
-                            "models/red_tex.png",
+                            "models/red_texture.png",
                             Texture.WrapMode.CLAMP_TO_EDGE,
                             Texture.ColorFormat.SRGB);
 
@@ -475,7 +475,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         if(!createdPos){
             Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
             session.getEarth().getCameraGeospatialPose().getLongitude(),
-                    session.getEarth().getCameraGeospatialPose().getAltitude(),
+                    session.getEarth().getCameraGeospatialPose().getAltitude() - 2.0f,
                     0,0,0,0);
             GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
             createAnchorWithGeospatialPose(-1, session.getEarth(), pose);
@@ -552,7 +552,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                 // Rotate the virtual object 180 degrees around the Y axis to make the object face the GL
                 // camera -Z axis, since camera Z axis faces toward users.
                 float[] rotationMatrix = new float[16];
-                Matrix.setRotateM(rotationMatrix, 0, 180, 0.0f, 1.0f, 0.0f);
+                Matrix.setRotateM(rotationMatrix, 0, -90, 1.0f, 0.0f, 0.0f);
                 float[] rotationModelMatrix = new float[16];
                 Matrix.multiplyMM(rotationModelMatrix, 0, modelMatrix, 0, rotationMatrix, 0);
                 // Calculate model/view/projection matrices
@@ -862,9 +862,9 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         directionToAnchor[2] /= norm;
 
         float dotProduct = cameraForward[0] * directionToAnchor[0] + cameraForward[1] * directionToAnchor[1] + cameraForward[2] * directionToAnchor[2];
-        float threshold = 0.8f;
+        float threshold = -0.8f;
 
-        if (dotProduct > threshold) {
+        if (dotProduct < threshold) {
             return true;
         }
 

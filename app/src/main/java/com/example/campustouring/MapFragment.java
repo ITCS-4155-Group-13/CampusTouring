@@ -115,22 +115,35 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 }
             }
         } catch (Exception e) {
+            Log.i("TAG", "this bitch broken");
             e.printStackTrace();
         }
+        Log.i("TAG", "We starting in this bitch");
+        Log.i("TAG", "masterlist" + MasterList);
         placeMasterPoints(MasterList, googleMap);
     }
     public void placeMasterPoints(List<String[]> MasterList, GoogleMap googleMap ){
+        Log.i("TAG", "We continue to be starting in this bitch");
+        boolean firstFlag = false;
+        Log.i("firstFlag", firstFlag + "");
         for(String[] Location : MasterList) {
-            String name = Location[1];
-            String snippet = Location[0];
-            double lat = Double.parseDouble(Location[4]);
-            double log = Double.parseDouble(Location[5]);
-            LatLng coords = new LatLng(lat,log);
+            Log.i("firstFlag", firstFlag + "");
+            if(firstFlag) {
+                String name = Location[1];
+                String snippet = Location[0];
+                Log.i("TAG", "MAP LATITUDE" + Location[4]);
+                Log.i("TAG", "MAP LONGITUDE" + Location[5]);
+                double lat = Double.parseDouble(Location[4]);
+                double log = Double.parseDouble(Location[5]);
+                LatLng coords = new LatLng(lat, log);
 
-            googleMap.addMarker(new MarkerOptions()
-                    .position(coords)
-                    .title(name)
-                    .snippet(snippet));
+                googleMap.addMarker(new MarkerOptions()
+                        .position(coords)
+                        .title(name)
+                        .snippet(snippet));
+                Log.i("TAG", "We done in this bitch");
+            }
+            firstFlag = true;
         }
     }
 

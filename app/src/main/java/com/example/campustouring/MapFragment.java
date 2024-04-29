@@ -1,6 +1,7 @@
 package com.example.campustouring;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -9,7 +10,10 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentResultListener;
 import androidx.navigation.Navigation;
 
 import com.example.campustouring.databinding.FragmentMapBinding;
@@ -17,6 +21,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -26,6 +31,9 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import android.Manifest;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
@@ -46,16 +54,43 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
-        LatLng location = new LatLng(35.3071, -80.7352);
+        LatLng schoolLocation = new LatLng(35.3071, -80.7352);
         LatLng southWest = new LatLng(35.3040, -80.7400);
         LatLng northEast = new LatLng(35.3100, -80.7300);
         LatLngBounds bounds = new LatLngBounds(southWest, northEast);
         googleMap.setLatLngBoundsForCameraTarget(bounds);
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 16));
-        googleMap.clear();
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(schoolLocation, 16));
         buildMasterPointList(googleMap);
         googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(getContext(), R.raw.empty_map_style));
         googleMap.setInfoWindowAdapter(new CustomInfoWindow(getContext()));
+
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            googleMap.setMyLocationEnabled(true); // Show the user's location on the map
+            FusedLocationProviderClient fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
+            fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+                if (location != null) {
+                    LatLng userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                    // Add a marker for the user's location
+                    googleMap.addMarker(new MarkerOptions()
+                            .position(userLocation)
+                            .title("Your Location")
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+                    // Move the camera to the user's location
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 16));
+                }
+            });
+        }
+        googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(@NonNull LatLng latLng) {
+                Bundle args = new Bundle();
+                args.putParcelable("locationCoordinates", latLng);
+                Navigation.findNavController(requireView()).navigate(
+                        R.id.action_MapFragment_to_LocationInputFragment,
+                        args
+                );
+            }
+        });
         googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(Marker marker) {
@@ -77,6 +112,33 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             }
         });
         this.gMap = googleMap;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        getParentFragmentManager().setFragmentResultListener("locationDetails", this, new FragmentResultListener() {
+            @Override
+            public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
+                // Retrieve location details from the result bundle
+                String name = result.getString("name");
+                String shortName = result.getString("shortName");
+                String description = result.getString("description");
+                double latitude = result.getDouble("latitude", 0.0);
+                double longitude = result.getDouble("longitude", 0.0);
+
+                // Handle the received location details (e.g., display marker on the map)
+                if (name != null && shortName != null && description != null) {
+                    // Add a marker on the map with the received location details
+                    LatLng location = new LatLng(latitude, longitude);
+                    gMap.addMarker(new MarkerOptions()
+                            .position(location)
+                            .title(name)
+                            .snippet(shortName + ": " + description));
+                }
+            }
+        });
     }
 
     public class CustomInfoWindow implements GoogleMap.InfoWindowAdapter {

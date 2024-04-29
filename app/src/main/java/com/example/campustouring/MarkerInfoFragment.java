@@ -192,6 +192,12 @@ public class MarkerInfoFragment extends Fragment {
             binding.titleTextView.setText(location[1]);
             binding.subTitleTextView.setText(location[2]);
             binding.descriptionTextView.setText(location[3]);
+
+            /** Implement once edit and delete have functionality
+            if (location.length > 6 && "1".equals(location[6])) {
+                editButton.setVisibility(View.GONE);
+                deleteButton.setVisibility(View.GONE);
+            }*/
         }
     }
     @Override

@@ -2,7 +2,6 @@ package com.example.campustouring;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.location.Location;
 import android.opengl.GLSurfaceView;
@@ -12,11 +11,7 @@ import android.os.Bundle;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 
 import android.util.Log;
 import android.view.GestureDetector;
@@ -24,9 +19,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.PopupMenu;
 
-import com.example.campustouring.databinding.FragmentARBinding;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -85,12 +78,6 @@ import common.samplerender.VertexBuffer;
 import common.samplerender.arcore.BackgroundRenderer;
 import common.samplerender.arcore.PlaneRenderer;
 import com.opencsv.CSVReader;
-
-import org.checkerframework.checker.units.qual.A;
-
-import java.io.IOException;
-import java.io.FileReader;
-import java.util.function.BiConsumer;
 
 public class ARFragment extends Fragment implements SampleRender.Renderer {
 
@@ -316,7 +303,22 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         if (session != null) {
             getLastLocation();
         }
+        CustomMarkerContract contract = new CustomMarkerContract(this.getContext());
+        CustomMarkerContract.MarkerEntryObj markerObject =
+                new CustomMarkerContract.MarkerEntryObj(
+                        "-2",
+                        "ARFRAGMENT name",
+                        "ARFRAGMENT shortname",
+                        "ARFRAGMENT link",
+                        "ARFRAGMENT latitude",
+                        "ARFRAGMENT longitude"
+                );
 
+        Log.d("DATABASE FUNCTIONS", "saving to database: " + markerObject.localIndex + markerObject.name + markerObject.shortName);
+        contract.saveToDb(markerObject);
+        Log.d("DATABASE FUNCTIONS", "saved to database: ");
+        Log.d("DATABASE FUNCTIONS", "reading from database: " + contract.readSingleFromDb(markerObject.localIndex).get("name"));
+        Log.d("DATABASE FUNCTIONS", "reading all from database: " + contract.readAllFromDb());
         // Note that order matters - see the note in onPause(), the reverse applies here.
         try {
             configureSession();

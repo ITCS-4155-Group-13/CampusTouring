@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.navigation.Navigation;
 
 import com.example.campustouring.databinding.FragmentMapBinding;
@@ -22,11 +23,13 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.opencsv.CSVReader;
+
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import com.google.android.gms.maps.model.MapStyleOptions;
 
+import com.google.android.gms.maps.model.MapStyleOptions;
+import com.example.campustouring.MainActivity;
 
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
@@ -60,6 +63,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.clear();
         MasterList.clear();
         loadCSVFiles();
+        CustomMarkerContract contract = new CustomMarkerContract(this.getContext());
+        CustomMarkerContract.MarkerEntryObj markerObject =
+                new CustomMarkerContract.MarkerEntryObj(
+                        "-1",
+                        "MAPFRAGMENT name",
+                        "MAPFRAGMENT shortname",
+                        "MAPFRAGMENT link",
+                        "MAPFRAGMENT latitude",
+                        "MAPFRAGMENT longitude"
+                );
+
+        Log.d("DATABASE FUNCTIONS", "saving to database: " + markerObject.localIndex + markerObject.name + markerObject.shortName);
+        contract.saveToDb(markerObject);
+        Log.d("DATABASE FUNCTIONS", "saved to database: ");
+        Log.d("DATABASE FUNCTIONS", "reading from database: " + contract.readSingleFromDb(markerObject.localIndex).get("name"));
         // load csv files
 
 
@@ -141,19 +159,14 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
-    public void placePoints(List<String[]> MasterList, GoogleMap googleMap ){
-        Log.i("TAG", "We continue to be starting in this bitch");
+
+    public void placePoints(List<String[]> MasterList, GoogleMap googleMap) {
         boolean firstFlag = false;
-        Log.i("firstFlag", firstFlag + "");
-        for(String[] Location : MasterList) {
-            Log.i("firstFlag", firstFlag + "");
-            if(firstFlag) {
+        for (String[] Location : MasterList) {
+            if (firstFlag) {
                 String name = Location[1];
                 String snippet = Location[0];
-                Log.i("TAG", "MAP LATITUDE" + Location[4]);
-                Log.i("TAG", "MAP LONGITUDE" + Location[5]);
                 double lat = Double.parseDouble(Location[4]);
                 double log = Double.parseDouble(Location[5]);
                 LatLng coords = new LatLng(lat, log);
@@ -162,11 +175,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         .position(coords)
                         .title(name)
                         .snippet(snippet));
-                Log.i("TAG", "We done in this bitch");
             }
             firstFlag = true;
         }
     }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();

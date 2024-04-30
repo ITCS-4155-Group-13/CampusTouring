@@ -463,14 +463,13 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
 
         if(!createdPos){
-            loadDefaultPoints();
-            loadCustomPoints();
-            Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
-            session.getEarth().getCameraGeospatialPose().getLongitude(),
-                    session.getEarth().getCameraGeospatialPose().getAltitude() + 6f,
-                    0,0,0,0);
-            GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
-            createAnchorWithGeospatialPose(-1, session.getEarth(), pose);
+            loadPoints();
+//            Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
+//            session.getEarth().getCameraGeospatialPose().getLongitude(),
+//                    session.getEarth().getCameraGeospatialPose().getAltitude() + 6f,
+//                    0,0,0,0);
+//            GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
+//            createAnchorWithGeospatialPose(-1, session.getEarth(), pose);
             createdPos = true;
         }
 
@@ -770,78 +769,49 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     }
 
     public void loadDefaultPoints() {
-        Log.i(TAG, "loadDefaultPoints");
         if (!defaultCreated) {
-            Log.i(TAG, "loadDefaultPoints IF");
             try (CSVReader reader = new CSVReader (new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')){
-                Log.i(TAG, "loadDefaultPoints TRY");
-
                 List<String[]> rows = reader.readAll();
                 String[] headers = rows.remove(0); // Remove and store the header row
-
                 ArrayList<HashMap<String, String>> data = new ArrayList<>();
 
-                Log.i(TAG, "First loops" + headers);
                 for (String[] row : rows) {
-                    Log.i(TAG, "outer loops");
                     HashMap<String, String> rowData = new HashMap<>();
                     for (int i = 0; i < headers.length; i++) {
-                        Log.i(TAG, "inner loops" + row[i]);
                         rowData.put(headers[i], row[i]);
                     }
                     data.add(rowData);
                 }
 
-                // Print the data
-                Log.i(TAG, "Second loops");
                 for (HashMap<String, String> row : data) {
-                    System.out.println(row);
-                    Log.i(TAG, "loadDefaultPoints VALUE: " + row);
-                    Log.i(TAG, "loadDefaultPoints LATLONG: " + row.get("lat") +" "+ row.get("long"));
                     double rowLat = Double.parseDouble(row.get("lat"));
                     double rowLong = Double.parseDouble(row.get("long"));
-                    Log.i(TAG, "lat: " + row.get("lat") + "long: " + row.get("long"));
-                    Log.i(TAG, "rowlat: " + rowLat+ " " + "rowlong: " + rowLong);
-                    Pose newPose = session.getEarth().getPose(rowLat, rowLong,
-                            session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
-
+                    Pose newPose = session.getEarth().getPose(rowLat, rowLong, session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
                     loadedAnchors.put(Integer.parseInt(row.get("index")), newPose);
                 }
-
-                Log.i(TAG, "loadDefaultPoints TRY finish: " + data);
             } catch (Exception ex) {
                 Log.e("TAG", "loadDefaultPoints FAILED");
                 Log.e("TAG", ex.toString());
             }
             defaultCreated = true;
         }
-        Log.i(TAG, "loadDefaultPoints COMPLETE");
     }
 
     public void loadCustomPoints() {
-        Log.i(TAG, "starting loadCustomPoints");
         List<HashMap<String, Object>> customPointList = contract.readAllFromDb();
-        Log.i(TAG, "loadCustomPoints readallDB: "+customPointList);
 
         for (HashMap<String, Object> row : customPointList) {
-            System.out.println(row);
-            Log.i(TAG, "loadCustomPoints VALUE: " + row);
-            Log.i(TAG, "loadCustomPoints LATLONG: " + row.get("lat") +" "+ row.get("long"));
             Double rowLat = ((Double)row.get("lat"));
             Double rowLong = ((Double)row.get("long"));
             int index = (int) row.get("localIndex");
-            Log.i(TAG, "CustomPoints lat: " + row.get("lat") + "long: " + row.get("long"));
-            Log.i(TAG, "CustomPoints rowlat: " + rowLat+ " " + "rowlong: " + rowLong);
             Pose newPose = session.getEarth().getPose(rowLat, rowLong,
                     session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
-
-            Log.i(TAG, "loadedAnchors.put" + index+ " " + "newPose: " + newPose);
             loadedAnchors.put(index, newPose);
         }
-
-
-        Log.d("DATABASE FUNCTIONS", "reading from database: " + contract.readSingleFromDb("1111").get("name"));
-        Log.d("DATABASE FUNCTIONS", "reading all from database: " + contract.readAllFromDb());
+    }
+    public void loadPoints() {
+        loadDefaultPoints();
+        loadCustomPoints();
     }
 
 //    private ArrayList<Anchor> getAnchorsInRange(Pose cameraPose) {

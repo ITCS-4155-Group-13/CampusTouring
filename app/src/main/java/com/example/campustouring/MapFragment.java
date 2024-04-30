@@ -26,6 +26,7 @@ import com.opencsv.CSVReader;
 
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import com.google.android.gms.maps.model.MapStyleOptions;
@@ -39,6 +40,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private List<String[]> MasterList = new ArrayList<>();
     private List<String[]> UserList = new ArrayList<>();
+    CustomMarkerContract contract;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -63,7 +65,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.clear();
         MasterList.clear();
         loadCSVFiles();
-        CustomMarkerContract contract = new CustomMarkerContract(this.getContext());
+        contract = new CustomMarkerContract(this.getContext());
         contract.clearDb();
         CustomMarkerContract.MarkerEntryObj markerObject1 =
                 new CustomMarkerContract.MarkerEntryObj(
@@ -89,8 +91,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         "MAPFRAGMENT name",
                         "MAPFRAGMENT shortname",
                         "MAPFRAGMENT link",
-                        "37.422038342652826",
-                        "-122.08400846671995"
+                        "35.3103452",
+                        "-80.74496841"
                 );
 
         Log.d("DATABASE FUNCTIONS", "saving to database: " + markerObject1.localIndex + markerObject1.name + markerObject1.shortName);
@@ -166,6 +168,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         } catch (Exception e) {
             e.printStackTrace();
         }
+//        List<HashMap<String, Object>> customPoints = contract.readAllFromDb();
+//        for (HashMap<String, Object> row : customPoints) {
+//            UserList.add(row);
+//        }
         try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.users)), '~')) {
             String[] line;
             while ((line = reader.readNext()) != null) {
@@ -183,6 +189,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     public void placePoints(List<String[]> MasterList, GoogleMap googleMap) {
+        List<HashMap<String, Object>> customList = contract.readAllFromDb();
         boolean firstFlag = false;
         for (String[] Location : MasterList) {
             if (firstFlag) {
@@ -199,6 +206,19 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             }
             firstFlag = true;
         }
+        for (HashMap<String, Object> row : customList){
+            String name = (String) row.get("name");
+            String snippet = Integer.toString((int) row.get("localIndex"));
+            double lat = (Double) row.get("lat");
+            double log = (Double) row.get("long");
+            LatLng coords = new LatLng(lat, log);
+
+            googleMap.addMarker(new MarkerOptions()
+                    .position(coords)
+                    .title(name)
+                    .snippet(snippet));
+        }
+
     }
 
     @Override

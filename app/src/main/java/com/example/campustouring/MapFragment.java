@@ -64,8 +64,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 16));
         googleMap.clear();
         MasterList.clear();
-        loadCSVFiles();
         contract = new CustomMarkerContract(this.getContext());
+        loadCSVFiles();
         contract.clearDb();
         CustomMarkerContract.MarkerEntryObj markerObject1 =
                 new CustomMarkerContract.MarkerEntryObj(

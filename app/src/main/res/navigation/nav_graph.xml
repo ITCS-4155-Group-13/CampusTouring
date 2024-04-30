@@ -37,6 +37,9 @@
         <action
             android:id="@+id/action_ARFragment_to_MapFragment"
             app:destination="@id/MapFragment" />
+        <action
+            android:id="@+id/action_ARFragment_to_MarkerInfoFragment"
+            app:destination="@+id/MarkerInfoFragment">
     </fragment>
     <fragment
         android:id="@+id/SettingsFragment"

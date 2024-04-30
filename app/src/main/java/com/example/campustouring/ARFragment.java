@@ -17,6 +17,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.navigation.Navigation;
 
 import android.util.Log;
 import android.view.GestureDetector;
@@ -407,9 +408,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     @Override
     public void onDrawFrame(SampleRender render) {
-        Log.i(TAG, "State: " + state);
-        Log.i(TAG, "Num Anchors: " + anchors.size());
-        Log.i(TAG, "Camera Position: " + session.getEarth().getCameraGeospatialPose().getLatitude() + " " + session.getEarth().getCameraGeospatialPose().getLongitude() + " " + session.getEarth().getCameraGeospatialPose().getAltitude());
 
         if (session == null) {
             return;
@@ -455,9 +453,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             updateGeospatialState(earth);
         }
 
-
-        handleTap(frame, camera.getTrackingState());
-
         // -- Draw background
 
         if (frame.getTimestamp() != 0) {
@@ -472,15 +467,15 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         }
         loadDefaultPoints();
 
-        if(!createdPos){
-            Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
-            session.getEarth().getCameraGeospatialPose().getLongitude(),
-                    session.getEarth().getCameraGeospatialPose().getAltitude() + 6f,
-                    0,0,0,0);
-            GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
-            createAnchorWithGeospatialPose(-1, session.getEarth(), pose);
-            createdPos = true;
-        }
+//        if(!createdPos){
+//            Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
+//            session.getEarth().getCameraGeospatialPose().getLongitude(),
+//                    session.getEarth().getCameraGeospatialPose().getAltitude() + 6f,
+//                    0,0,0,0);
+//            GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
+//            createAnchorWithGeospatialPose(-1, session.getEarth(), pose);
+//            createdPos = true;
+//        }
 
         for (HashMap.Entry<Integer, Pose> entry : loadedAnchors.entrySet()) {
             if(calculateDistance(camera.getPose().getTranslation(), entry.getValue().getTranslation()) < minAnchorRange) {
@@ -496,6 +491,13 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             if(isFacingAnchor(camera.getPose(), entry.getValue())){
                 Log.i(TAG, "Facing " + entry.getKey() + " : " + entry.getValue().toString());
                 // if tapped send int associated with anchor to info frame
+                handleTap(frame, camera.getTrackingState(), entry.getValue());
+                Bundle args = new Bundle();
+                args.putString("snippet", entry.getKey().toString());
+                Navigation.findNavController(requireView()).navigate(
+                        R.id.action_MapFragment_to_MarkerInfoFragment,
+                        args
+                );
             }
         }
         // -- Draw virtual objects
@@ -753,7 +755,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         editor.commit();
     }
 
-    private void handleTap(Frame frame, TrackingState cameraTrackingState) {
+    private void handleTap(Frame frame, TrackingState cameraTrackingState, Anchor anchor) {
         // Handle taps. Handling only one tap per frame, as taps are usually low frequency
         // compared to frame rate.
         synchronized (singleTapLock) {
@@ -771,7 +773,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                 return;
             }
 
-            Log.i(TAG, "handleTap: Tapped");
+            Log.i(TAG, "handleTap: " + anchor.toString());
 
             queuedSingleTap = null;
         }

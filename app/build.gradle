@@ -50,6 +50,7 @@ dependencies {
     implementation 'com.google.android.gms:play-services-auth:19.0.0'
     implementation 'de.javagl:obj:0.4.0'
     implementation 'com.opencsv:opencsv:4.6'
+    implementation 'com.google.android.libraries.healthdata:health-data-api:1.0.0-alpha01'
 
     // ARCore (Google Play Services for AR) library.
 

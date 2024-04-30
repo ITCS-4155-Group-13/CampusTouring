@@ -64,20 +64,41 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         MasterList.clear();
         loadCSVFiles();
         CustomMarkerContract contract = new CustomMarkerContract(this.getContext());
-        CustomMarkerContract.MarkerEntryObj markerObject =
+        contract.clearDb();
+        CustomMarkerContract.MarkerEntryObj markerObject1 =
                 new CustomMarkerContract.MarkerEntryObj(
-                        "-1",
+                        "1111",
                         "MAPFRAGMENT name",
                         "MAPFRAGMENT shortname",
                         "MAPFRAGMENT link",
-                        "MAPFRAGMENT latitude",
-                        "MAPFRAGMENT longitude"
+                        "37.421987",
+                        "-122.08394"
+                );
+        CustomMarkerContract.MarkerEntryObj markerObject2 =
+                new CustomMarkerContract.MarkerEntryObj(
+                        "2222",
+                        "MAPFRAGMENT name",
+                        "MAPFRAGMENT shortname",
+                        "MAPFRAGMENT link",
+                        "37.42198780729836",
+                        "-122.08394704246473"
+                );
+        CustomMarkerContract.MarkerEntryObj markerObject3 =
+                new CustomMarkerContract.MarkerEntryObj(
+                        "3333",
+                        "MAPFRAGMENT name",
+                        "MAPFRAGMENT shortname",
+                        "MAPFRAGMENT link",
+                        "37.422038342652826",
+                        "-122.08400846671995"
                 );
 
-        Log.d("DATABASE FUNCTIONS", "saving to database: " + markerObject.localIndex + markerObject.name + markerObject.shortName);
-        contract.saveToDb(markerObject);
+        Log.d("DATABASE FUNCTIONS", "saving to database: " + markerObject1.localIndex + markerObject1.name + markerObject1.shortName);
+        contract.saveToDb(markerObject1);
+        contract.saveToDb(markerObject2);
+        contract.saveToDb(markerObject3);
         Log.d("DATABASE FUNCTIONS", "saved to database: ");
-        Log.d("DATABASE FUNCTIONS", "reading from database: " + contract.readSingleFromDb(markerObject.localIndex).get("name"));
+        Log.d("DATABASE FUNCTIONS", "reading from database: " + contract.readSingleFromDb(markerObject1.localIndex).get("name"));
         // load csv files
 
 

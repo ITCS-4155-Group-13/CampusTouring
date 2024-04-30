@@ -77,6 +77,8 @@ import common.samplerender.Texture;
 import common.samplerender.VertexBuffer;
 import common.samplerender.arcore.BackgroundRenderer;
 import common.samplerender.arcore.PlaneRenderer;
+import de.javagl.obj.Obj;
+
 import com.opencsv.CSVReader;
 
 public class ARFragment extends Fragment implements SampleRender.Renderer {
@@ -167,6 +169,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     private final Object anchorsLock = new Object();
 
     private AssetManager assetManager;
+    private CustomMarkerContract contract;
 
     @Nullable
     @Override
@@ -303,22 +306,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         if (session != null) {
             getLastLocation();
         }
-        CustomMarkerContract contract = new CustomMarkerContract(this.getContext());
-        CustomMarkerContract.MarkerEntryObj markerObject =
-                new CustomMarkerContract.MarkerEntryObj(
-                        "-2",
-                        "ARFRAGMENT name",
-                        "ARFRAGMENT shortname",
-                        "ARFRAGMENT link",
-                        "ARFRAGMENT latitude",
-                        "ARFRAGMENT longitude"
-                );
-
-        Log.d("DATABASE FUNCTIONS", "saving to database: " + markerObject.localIndex + markerObject.name + markerObject.shortName);
-        contract.saveToDb(markerObject);
-        Log.d("DATABASE FUNCTIONS", "saved to database: ");
-        Log.d("DATABASE FUNCTIONS", "reading from database: " + contract.readSingleFromDb(markerObject.localIndex).get("name"));
-        Log.d("DATABASE FUNCTIONS", "reading all from database: " + contract.readAllFromDb());
+        contract = new CustomMarkerContract(this.getContext());
         // Note that order matters - see the note in onPause(), the reverse applies here.
         try {
             configureSession();
@@ -416,7 +404,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         if (session == null) {
             return;
         }
-
+        Log.d("NUM ANCHORS", "NUM ANCHORS: " + loadedAnchors.size());
         // Texture names should only be set once on a GL thread unless they change. This is done during
         // onDrawFrame rather than onSurfaceCreated since the session is not guaranteed to have been
         // initialized during the execution of onSurfaceCreated.
@@ -472,9 +460,11 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         if (camera.getTrackingState() != TrackingState.TRACKING || state != State.LOCALIZED) {
             return;
         }
-        loadDefaultPoints();
+
 
         if(!createdPos){
+            loadDefaultPoints();
+            loadCustomPoints();
             Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
             session.getEarth().getCameraGeospatialPose().getLongitude(),
                     session.getEarth().getCameraGeospatialPose().getAltitude() + 6f,
@@ -826,6 +816,32 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             defaultCreated = true;
         }
         Log.i(TAG, "loadDefaultPoints COMPLETE");
+    }
+
+    public void loadCustomPoints() {
+        Log.i(TAG, "starting loadCustomPoints");
+        List<HashMap<String, Object>> customPointList = contract.readAllFromDb();
+        Log.i(TAG, "loadCustomPoints readallDB: "+customPointList);
+
+        for (HashMap<String, Object> row : customPointList) {
+            System.out.println(row);
+            Log.i(TAG, "loadCustomPoints VALUE: " + row);
+            Log.i(TAG, "loadCustomPoints LATLONG: " + row.get("lat") +" "+ row.get("long"));
+            Double rowLat = ((Double)row.get("lat"));
+            Double rowLong = ((Double)row.get("long"));
+            int index = (int) row.get("localIndex");
+            Log.i(TAG, "CustomPoints lat: " + row.get("lat") + "long: " + row.get("long"));
+            Log.i(TAG, "CustomPoints rowlat: " + rowLat+ " " + "rowlong: " + rowLong);
+            Pose newPose = session.getEarth().getPose(rowLat, rowLong,
+                    session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
+
+            Log.i(TAG, "loadedAnchors.put" + index+ " " + "newPose: " + newPose);
+            loadedAnchors.put(index, newPose);
+        }
+
+
+        Log.d("DATABASE FUNCTIONS", "reading from database: " + contract.readSingleFromDb("1111").get("name"));
+        Log.d("DATABASE FUNCTIONS", "reading all from database: " + contract.readAllFromDb());
     }
 
 //    private ArrayList<Anchor> getAnchorsInRange(Pose cameraPose) {

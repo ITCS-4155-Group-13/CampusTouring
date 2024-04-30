@@ -162,4 +162,8 @@ public class CustomMarkerContract {
 
         db.delete(CustomMarkerContract.MarkerEntry.TABLE_NAME, selection, selectionArgs);
     }
+    public void clearDb() {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        db.delete(MarkerEntry.TABLE_NAME, null, null);
+    }
 }

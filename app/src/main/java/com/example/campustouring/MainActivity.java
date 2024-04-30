@@ -1,36 +1,19 @@
 package com.example.campustouring;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.opengl.GLSurfaceView;
-import android.os.Bundle;
 
+import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.util.Log;
-import android.view.SurfaceView;
 import android.view.View;
-
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
-
 import com.example.campustouring.databinding.ActivityMainBinding;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-
 import android.view.Menu;
 import android.view.MenuItem;
-
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import common.samplerender.SampleRender;
 
 
 

@@ -22,11 +22,13 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.opencsv.CSVReader;
+
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import com.google.android.gms.maps.model.MapStyleOptions;
 
+import com.google.android.gms.maps.model.MapStyleOptions;
 
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
@@ -36,6 +38,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private List<String[]> MasterList = new ArrayList<>();
     private List<String[]> UserList = new ArrayList<>();
+    CustomMarkerContract contract;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -59,6 +62,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 16));
         googleMap.clear();
         MasterList.clear();
+        contract = new CustomMarkerContract(this.getContext());
         loadCSVFiles();
         // load csv files
 
@@ -127,6 +131,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         } catch (Exception e) {
             e.printStackTrace();
         }
+//        List<HashMap<String, Object>> customPoints = contract.readAllFromDb();
+//        for (HashMap<String, Object> row : customPoints) {
+//            UserList.add(row);
+//        }
         try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.users)), '~')) {
             String[] line;
             while ((line = reader.readNext()) != null) {
@@ -141,19 +149,15 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
-    public void placePoints(List<String[]> MasterList, GoogleMap googleMap ){
-        Log.i("TAG", "We continue to be starting in this bitch");
+
+    public void placePoints(List<String[]> MasterList, GoogleMap googleMap) {
+        List<HashMap<String, Object>> customList = contract.readAllFromDb();
         boolean firstFlag = false;
-        Log.i("firstFlag", firstFlag + "");
-        for(String[] Location : MasterList) {
-            Log.i("firstFlag", firstFlag + "");
-            if(firstFlag) {
+        for (String[] Location : MasterList) {
+            if (firstFlag) {
                 String name = Location[1];
                 String snippet = Location[0];
-                Log.i("TAG", "MAP LATITUDE" + Location[4]);
-                Log.i("TAG", "MAP LONGITUDE" + Location[5]);
                 double lat = Double.parseDouble(Location[4]);
                 double log = Double.parseDouble(Location[5]);
                 LatLng coords = new LatLng(lat, log);
@@ -162,11 +166,24 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         .position(coords)
                         .title(name)
                         .snippet(snippet));
-                Log.i("TAG", "We done in this bitch");
             }
             firstFlag = true;
         }
+        for (HashMap<String, Object> row : customList){
+            String name = (String) row.get("name");
+            String snippet = Integer.toString((int) row.get("localIndex"));
+            double lat = (Double) row.get("lat");
+            double log = (Double) row.get("long");
+            LatLng coords = new LatLng(lat, log);
+
+            googleMap.addMarker(new MarkerOptions()
+                    .position(coords)
+                    .title(name)
+                    .snippet(snippet));
+        }
+
     }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();

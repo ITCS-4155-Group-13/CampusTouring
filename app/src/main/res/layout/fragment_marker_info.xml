@@ -60,6 +60,7 @@
             android:layout_marginStart="16dp"
             android:backgroundTint="#FFC107"
             android:text="@string/editText"
+            android:textSize="16sp"
             app:layout_constraintBottom_toBottomOf="@+id/deleteButton"
             app:layout_constraintEnd_toStartOf="@+id/deleteButton"
             app:layout_constraintStart_toStartOf="parent"
@@ -75,6 +76,7 @@
             android:layout_marginBottom="8dp"
             android:backgroundTint="#F44336"
             android:text="@string/deleteText"
+            android:textSize="16sp"
             app:backgroundTint="@android:color/black"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -127,6 +129,7 @@
                 android:hint="@string/descriptionText"
                 android:inputType="textMultiLine"
                 android:text="@string/descriptionText"
+                android:textSize="16sp"
                 android:visibility="invisible" />
         </ScrollView>
 
@@ -145,7 +148,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/descriptionText"
-                android:textAlignment="center" />
+                android:textAlignment="center"
+                android:textSize="16sp" />
         </ScrollView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

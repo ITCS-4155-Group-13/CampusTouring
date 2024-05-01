@@ -41,6 +41,14 @@
         <action
             android:id="@+id/action_ARFragment_to_MapFragment"
             app:destination="@id/MapFragment" />
+
+        <action
+            android:id="@+id/action_ARFragment_to_MarkerInfoFragment"
+            app:destination="@id/MarkerInfoFragment"/>
+
+        <action
+            android:id="@+id/action_ARFragment_to_LocationInputFragment"
+            app:destination="@id/locationInputFragment"/>
     </fragment>
 
     <fragment
@@ -65,6 +73,18 @@
         android:name="com.example.campustouring.LocationInputFragment"
         android:label="@string/locationinput"
         tools:layout="@layout/fragment_location_input" >
+        <action
+            android:id="@+id/action_LocationInputFragment_to_MapFragment"
+            app:destination="@id/MapFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/locationInputFragment"
+        android:name="com.example.campustouring.LocationInputFragment"
+        android:label="Create a New Location"
+        tools:layout="@layout/fragment_location_input">
+        <action
+            android:id="@+id/action_LocationInputFragment_to_ARFragment"
+            app:destination="@id/ARFragment" />
         <action
             android:id="@+id/action_LocationInputFragment_to_MapFragment"
             app:destination="@id/MapFragment" />

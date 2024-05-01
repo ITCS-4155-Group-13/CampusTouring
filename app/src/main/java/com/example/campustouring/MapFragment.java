@@ -1,14 +1,21 @@
 package com.example.campustouring;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.Manifest;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
@@ -24,7 +31,6 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.opencsv.CSVReader;
 
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -33,16 +39,25 @@ import com.google.android.gms.maps.model.MapStyleOptions;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
+    private ActivityResultLauncher<String> requestPermissionLauncher;
+
     private FragmentMapBinding binding;
     private GoogleMap gMap;
-
-    private List<String[]> MasterList = new ArrayList<>();
-    private List<String[]> UserList = new ArrayList<>();
     CustomMarkerContract contract;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
+        requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+            if (isGranted) {
+                if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    gMap.setMyLocationEnabled(true);
+                }
+            } else {
+                requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+            }
+        });
 
         binding = FragmentMapBinding.inflate(inflater, container, false);
         SupportMapFragment mapFragment = SupportMapFragment.newInstance();
@@ -61,18 +76,24 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.setLatLngBoundsForCameraTarget(bounds);
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 16));
         googleMap.clear();
-        MasterList.clear();
         contract = new CustomMarkerContract(this.getContext());
+
+        // Load CSV files
         loadCSVFiles();
-        // load csv files
 
+        // Place points from Database
+        placePoints(googleMap);
 
-        //place all the points from
-        placePoints(MasterList, googleMap);
-        //placePoints(UserList, googleMap);
+        printMarkersFromContract();
 
-        //may be used later not sure what for
+        //Implement the presentation of the LocationInputFragment on Map Click
         //googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {}
+
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            googleMap.setMyLocationEnabled(true);
+        } else {
+            ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+        }
 
         googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(getContext(), R.raw.empty_map_style));
         googleMap.setInfoWindowAdapter(new CustomInfoWindow(getContext()));
@@ -99,89 +120,90 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         this.gMap = googleMap;
     }
 
-        public class CustomInfoWindow implements GoogleMap.InfoWindowAdapter {
+    public class CustomInfoWindow implements GoogleMap.InfoWindowAdapter {
 
-            View CustomView;
+        View CustomView;
 
-            public CustomInfoWindow(Context context) {
-                CustomView = LayoutInflater.from(context).inflate(R.layout.custom_marker_view, null);
-            }
-
-            @Override
-            public View getInfoWindow(Marker marker) {
-                TextView customTitle = CustomView.findViewById(R.id.customTitleTextView);
-                customTitle.setText(marker.getTitle());
-                return CustomView;
-            }
-
-            @Override
-            public View getInfoContents(Marker marker) {
-                return null;
-            }
+        public CustomInfoWindow(Context context) {
+            CustomView = LayoutInflater.from(context).inflate(R.layout.custom_marker_view, null);
         }
 
+        @Override
+        public View getInfoWindow(Marker marker) {
+            TextView customTitle = CustomView.findViewById(R.id.customTitleTextView);
+            customTitle.setText(marker.getTitle());
+            return CustomView;
+        }
+
+        @Override
+        public View getInfoContents(Marker marker) {
+            return null;
+        }
+    }
+
     public void loadCSVFiles(){
+        // Loading All Default Points From CSV
+        boolean firstLine = true;
         try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
             String[] line;
             while ((line = reader.readNext()) != null) {
-                // 'line' contains the data for one row
-                // You can process it as needed
-                MasterList.add(line);
+                if (firstLine) {
+                    firstLine = false;
+                    continue;
+                }
+                // Convert CSV data to MarkerEntryObj
+                CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(
+                        line[0], line[1], line[2], line[3], line[4], line[5]
+                );
+                // Save marker to the database using the contract
+                contract.saveToDb(marker);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-//        List<HashMap<String, Object>> customPoints = contract.readAllFromDb();
-//        for (HashMap<String, Object> row : customPoints) {
-//            UserList.add(row);
-//        }
+
+        // Loading All Custom User Points From CSV
         try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.users)), '~')) {
             String[] line;
             while ((line = reader.readNext()) != null) {
-                // 'line' contains the data for one row
-                // You can process it as needed
-                UserList.add(line);
-
-                for (String data : line) {
-                    Log.d("CSVReader", data);
-                }
+                // Convert CSV data to MarkerEntryObj
+                CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(
+                        line[0], line[1], line[2], line[3], line[4], line[5]
+                );
+                // Save marker to the database using the contract
+                contract.saveToDb(marker);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void placePoints(List<String[]> MasterList, GoogleMap googleMap) {
-        List<HashMap<String, Object>> customList = contract.readAllFromDb();
-        boolean firstFlag = false;
-        for (String[] Location : MasterList) {
-            if (firstFlag) {
-                String name = Location[1];
-                String snippet = Location[0];
-                double lat = Double.parseDouble(Location[4]);
-                double log = Double.parseDouble(Location[5]);
-                LatLng coords = new LatLng(lat, log);
-
-                googleMap.addMarker(new MarkerOptions()
-                        .position(coords)
-                        .title(name)
-                        .snippet(snippet));
-            }
-            firstFlag = true;
+    // Logging Function to Check Contract Integrity, Delete After Use
+    private void printMarkersFromContract() {
+        List<HashMap<String, Object>> markerList = contract.readAllFromDb();
+        for (HashMap<String, Object> marker : markerList) {
+            Log.d("Marker from Contract", "Name: " + marker.get("name") +
+                    ", Latitude: " + marker.get("lat") +
+                    ", Longitude: " + marker.get("long"));
         }
-        for (HashMap<String, Object> row : customList){
-            String name = (String) row.get("name");
-            String snippet = Integer.toString((int) row.get("localIndex"));
-            double lat = (Double) row.get("lat");
-            double log = (Double) row.get("long");
-            LatLng coords = new LatLng(lat, log);
+    }
+
+    public void placePoints(GoogleMap googleMap) {
+        List<HashMap<String, Object>> customList = contract.readAllFromDb();
+
+        for (HashMap<String, Object> row : customList) {
+            String name = (String) row.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_NAME);
+            String snippet = String.valueOf(row.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LOCALINDEX));
+            double lat = (Double) row.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LAT);
+            double lng = (Double) row.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LONG);
+
+            LatLng coords = new LatLng(lat, lng);
 
             googleMap.addMarker(new MarkerOptions()
                     .position(coords)
                     .title(name)
                     .snippet(snippet));
         }
-
     }
 
     @Override

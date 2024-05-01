@@ -57,6 +57,14 @@ public class CustomMarkerContract {
     public void saveToDb(CustomMarkerContract.MarkerEntryObj marker){
         SQLiteDatabase db = this.dbHelper.getWritableDatabase();
 
+        // Check if the marker with the same local index already exists in the database
+        HashMap<String, Object> existingMarker = readSingleFromDb(marker.localIndex);
+        if (!existingMarker.isEmpty()) {
+            // If the marker already exists, update its details instead of adding a new entry
+            updateMarkerInDb(marker);
+            return;
+        }
+
         ContentValues values = new ContentValues();
         values.put(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LOCALINDEX, marker.localIndex);
         values.put(CustomMarkerContract.MarkerEntry.COLUMN_NAME_NAME, marker.name);
@@ -162,6 +170,29 @@ public class CustomMarkerContract {
 
         db.delete(CustomMarkerContract.MarkerEntry.TABLE_NAME, selection, selectionArgs);
     }
+
+    public void updateMarkerInDb(CustomMarkerContract.MarkerEntryObj marker) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(CustomMarkerContract.MarkerEntry.COLUMN_NAME_NAME, marker.name);
+        values.put(CustomMarkerContract.MarkerEntry.COLUMN_NAME_SHORTNAME, marker.shortName);
+        values.put(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LINK, marker.link);
+        values.put(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LAT, marker.latitude);
+        values.put(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LONG, marker.longitude);
+        values.put(CustomMarkerContract.MarkerEntry.COLUMN_NAME_ISDEFAULTMARKER, marker.isDefaultMarker);
+
+        String selection = CustomMarkerContract.MarkerEntry.COLUMN_NAME_LOCALINDEX + " = ?";
+        String[] selectionArgs = { marker.localIndex };
+
+        db.update(
+                CustomMarkerContract.MarkerEntry.TABLE_NAME,
+                values,
+                selection,
+                selectionArgs
+        );
+    }
+
     public void clearDb() {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         db.delete(MarkerEntry.TABLE_NAME, null, null);

@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -96,9 +97,25 @@ public class MarkerInfoFragment extends Fragment {
         String subtitle = binding.editSubTitleText.getText().toString();
         String description = binding.editDescriptionText.getText().toString();
 
-        CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(locationIndex, title, subtitle, "", "", "", "");
+        // Retrieve existing marker information
+        HashMap<String, Object> existingMarker = markerContract.readSingleFromDb(locationIndex);
 
-        markerContract.saveToDb(marker);
+        // Ensure existing latitude and longitude are preserved
+        String latitude = existingMarker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LAT).toString();
+        String longitude = existingMarker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LONG).toString();
+        // Ensure existing default marker status is preserved
+        String isDefaultMarker = existingMarker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_ISDEFAULTMARKER).toString();
+
+        // Create updated marker object
+        CustomMarkerContract.MarkerEntryObj updatedMarker = new CustomMarkerContract.MarkerEntryObj(locationIndex, title, subtitle, description, latitude, longitude, isDefaultMarker);
+
+        // Update marker information in the database
+        markerContract.saveToDb(updatedMarker);
+
+        // Update UI with the new information
+        binding.titleTextView.setText(title);
+        binding.subTitleTextView.setText(subtitle);
+        binding.descriptionTextView.setText(description);
 
         Toast.makeText(getContext(), "Marker info updated successfully!", Toast.LENGTH_SHORT).show();
     }
@@ -120,11 +137,15 @@ public class MarkerInfoFragment extends Fragment {
             HashMap<String, Object> marker = markerContract.readSingleFromDb(snippet);
 
             if (!marker.isEmpty()) {
+                // Print the contents of the marker HashMap
+                Log.d("Marker HashMap", "Marker HashMap: " + marker);
+
                 binding.titleTextView.setText(marker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_NAME).toString());
                 binding.subTitleTextView.setText(marker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_SHORTNAME).toString());
                 binding.descriptionTextView.setText(marker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LINK).toString());
 
-                if ("1".equals(marker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_ISDEFAULTMARKER).toString())) {
+                String isDefaultMarker = marker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_ISDEFAULTMARKER).toString();
+                if ("1".equals(isDefaultMarker)) {
                     editButton.setVisibility(View.GONE);
                     deleteButton.setVisibility(View.GONE);
                 }

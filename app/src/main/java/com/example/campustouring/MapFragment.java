@@ -28,9 +28,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.opencsv.CSVReader;
 
-import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 
@@ -78,16 +76,20 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.clear();
         contract = new CustomMarkerContract(this.getContext());
 
-        // Load CSV files
-        loadCSVFiles();
-
         // Place points from Database
         placePoints(googleMap);
-
-        printMarkersFromContract();
-
-        //Implement the presentation of the LocationInputFragment on Map Click
-        //googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {}
+        googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                // Pass the clicked location coordinates to the LocationInputFragment
+                Bundle args = new Bundle();
+                args.putParcelable("locationCoordinates", latLng);
+                Navigation.findNavController(requireView()).navigate(
+                        R.id.action_MapFragment_to_LocationInputFragment,
+                        args
+                );
+            }
+        });
 
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             googleMap.setMyLocationEnabled(true);
@@ -110,7 +112,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 Bundle args = new Bundle();
                 args.putString("title", marker.getTitle());
                 args.putString("snippet", marker.getSnippet());
-
+                Log.d("Marker from Contract", "Title: " + marker.getTitle() +
+                        ", Snippet: " + marker.getSnippet());
                 Navigation.findNavController(requireView()).navigate(
                         R.id.action_MapFragment_to_MarkerInfoFragment,
                         args
@@ -141,44 +144,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    public void loadCSVFiles(){
-        // Loading All Default Points From CSV
-        boolean firstLine = true;
-        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
-            String[] line;
-            while ((line = reader.readNext()) != null) {
-                if (firstLine) {
-                    firstLine = false;
-                    continue;
-                }
-                // Convert CSV data to MarkerEntryObj
-                CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(
-                        line[0], line[1], line[2], line[3], line[4], line[5]
-                );
-                // Save marker to the database using the contract
-                contract.saveToDb(marker);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // Loading All Custom User Points From CSV
-        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.users)), '~')) {
-            String[] line;
-            while ((line = reader.readNext()) != null) {
-                // Convert CSV data to MarkerEntryObj
-                CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(
-                        line[0], line[1], line[2], line[3], line[4], line[5]
-                );
-                // Save marker to the database using the contract
-                contract.saveToDb(marker);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Logging Function to Check Contract Integrity, Delete After Use
     private void printMarkersFromContract() {
         List<HashMap<String, Object>> markerList = contract.readAllFromDb();
         for (HashMap<String, Object> marker : markerList) {
@@ -190,6 +155,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     public void placePoints(GoogleMap googleMap) {
         List<HashMap<String, Object>> customList = contract.readAllFromDb();
+
+        // Clear existing markers
+        googleMap.clear();
 
         for (HashMap<String, Object> row : customList) {
             String name = (String) row.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_NAME);

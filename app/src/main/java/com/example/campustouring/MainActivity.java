@@ -12,9 +12,12 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import com.example.campustouring.databinding.ActivityMainBinding;
+import com.opencsv.CSVReader;
+
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.io.InputStreamReader;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -31,6 +34,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         setSupportActionBar(binding.toolbar);
+
+        // Load CSV files and store in the database
+        loadCSVFiles();
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         appBarConfiguration = new AppBarConfiguration.Builder(R.id.IntroductionFragment, R.id.MapFragment, R.id.ARFragment).build();
@@ -88,6 +94,49 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    // Load CSV files and store in the database
+    private void loadCSVFiles() {
+        CustomMarkerContract contract = new CustomMarkerContract(getApplicationContext());
+
+        //Delete All Entries
+        contract.clearDb();
+
+        // Loading All Default Points From CSV
+        boolean firstLine = true;
+        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
+            String[] line;
+            while ((line = reader.readNext()) != null) {
+                if (firstLine) {
+                    firstLine = false;
+                    continue;
+                }
+                // Convert CSV data to MarkerEntryObj
+                CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(
+                        line[0], line[1], line[2], line[3], line[4], line[5], line[6]
+                );
+                // Save marker to the database using the contract
+                contract.saveToDb(marker);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Loading All Custom User Points From CSV
+        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.users)), '~')) {
+            String[] line;
+            while ((line = reader.readNext()) != null) {
+                // Convert CSV data to MarkerEntryObj
+                CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(
+                        line[0], line[1], line[2], line[3], line[4], line[5]
+                );
+                // Save marker to the database using the contract
+                contract.saveToDb(marker);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

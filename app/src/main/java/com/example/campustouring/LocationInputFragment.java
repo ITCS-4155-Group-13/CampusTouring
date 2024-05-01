@@ -17,6 +17,8 @@ import android.widget.Toast;
 import com.example.campustouring.databinding.FragmentLocationInputBinding;
 import com.google.android.gms.maps.model.LatLng;
 
+import java.util.UUID;
+
 public class LocationInputFragment extends Fragment {
     private FragmentLocationInputBinding binding;
     private EditText editNewTitleText;
@@ -24,6 +26,7 @@ public class LocationInputFragment extends Fragment {
     private EditText editNewDescriptionText;
     private LatLng locationCoordinates;
     private Button saveButton;
+    private CustomMarkerContract markerContract;
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -39,6 +42,8 @@ public class LocationInputFragment extends Fragment {
             locationCoordinates = args.getParcelable("locationCoordinates");
         }
 
+        markerContract = new CustomMarkerContract(getContext());
+
         return binding.getRoot();
     }
 
@@ -53,21 +58,28 @@ public class LocationInputFragment extends Fragment {
                 String name = editNewTitleText.getText().toString();
                 String shortName = editNewSubTitleText.getText().toString();
                 String description = editNewDescriptionText.getText().toString();
+                double latitude = locationCoordinates.latitude;
+                double longitude = locationCoordinates.longitude;
 
-                // Pass all location details back to MapFragment
-                Bundle locationArgs = new Bundle();
-                locationArgs.putString("name", name);
-                locationArgs.putString("shortName", shortName);
-                locationArgs.putString("description", description);
-                locationArgs.putParcelable("locationCoordinates", locationCoordinates);
+                // Generate unique identifier for the marker entry
+                String entryId = UUID.randomUUID().toString();
 
-                getParentFragmentManager().setFragmentResult("locationDetails", locationArgs);
-
+                // Save location details to the database
+                CustomMarkerContract.MarkerEntryObj newMarker = new CustomMarkerContract.MarkerEntryObj(
+                        entryId, name, shortName, description, String.valueOf(latitude), String.valueOf(longitude), "0"
+                );
+                markerContract.saveToDb(newMarker);
                 Toast.makeText(requireContext(), "Location point created successfully!", Toast.LENGTH_SHORT).show();
 
                 // Navigate back to MapFragment
-                Navigation.findNavController(requireView()).popBackStack();
+                getParentFragmentManager().popBackStack();
             }
         });
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
     }
 }

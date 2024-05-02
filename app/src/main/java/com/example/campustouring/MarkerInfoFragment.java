@@ -113,6 +113,7 @@ public class MarkerInfoFragment extends Fragment {
         updatedMarker._id = existingMarker._id;
 
         // Update marker information in the database
+        markerContract.updateMarker(updatedMarker);
 
         // Update UI with the new information
         binding.titleTextView.setText(title);

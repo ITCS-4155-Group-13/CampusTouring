@@ -44,6 +44,7 @@ public class CustomMarkerContract {
             this.link = link;
             this.latitude = latitude;
             this.longitude = longitude;
+            this.isDefaultMarker = isDefaultMarker;
         }
 
         public MarkerEntryObj(String name, String shortName, String link, Double latitude, Double longitude, int isDefaultMarker) {

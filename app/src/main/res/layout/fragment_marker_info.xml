@@ -38,8 +38,8 @@
             app:layout_constraintHorizontal_bias="0.502"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="?attr/colorOnTertiaryFixed"
-            tools:src="@tools:sample/avatars" />
+            app:srcCompat="@drawable/UNC_Charlotte_Main_Logo"
+            tools:src="@drawable/UNC_Charlotte_Main_Logo" />
 
         <TextView
             android:id="@+id/subTitleTextView"

@@ -24,7 +24,7 @@ public class MarkerInfoFragment extends Fragment {
     private Button editButton;
     private Button deleteButton;
     private boolean isEditMode = false;
-    private String locationIndex;
+    private int locationIndex;
     private CustomMarkerContract markerContract;
 
     @Override
@@ -98,19 +98,21 @@ public class MarkerInfoFragment extends Fragment {
         String description = binding.editDescriptionText.getText().toString();
 
         // Retrieve existing marker information
-        HashMap<String, Object> existingMarker = markerContract.readSingleFromDb(locationIndex);
+        CustomMarkerContract.MarkerEntryObj existingMarker = markerContract.readSingleFromDb(locationIndex);
 
         // Ensure existing latitude and longitude are preserved
-        String latitude = existingMarker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LAT).toString();
-        String longitude = existingMarker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LONG).toString();
-        // Ensure existing default marker status is preserved
-        String isDefaultMarker = existingMarker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_ISDEFAULTMARKER).toString();
-
         // Create updated marker object
-        CustomMarkerContract.MarkerEntryObj updatedMarker = new CustomMarkerContract.MarkerEntryObj(locationIndex, title, subtitle, description, latitude, longitude, isDefaultMarker);
+        CustomMarkerContract.MarkerEntryObj updatedMarker = new CustomMarkerContract.MarkerEntryObj(
+                title,
+                subtitle,
+                description,
+                existingMarker.latitude,
+                existingMarker.longitude,
+                existingMarker.isDefaultMarker
+        );
+        updatedMarker._id = existingMarker._id;
 
         // Update marker information in the database
-        markerContract.saveToDb(updatedMarker);
 
         // Update UI with the new information
         binding.titleTextView.setText(title);
@@ -120,7 +122,7 @@ public class MarkerInfoFragment extends Fragment {
         Toast.makeText(getContext(), "Marker info updated successfully!", Toast.LENGTH_SHORT).show();
     }
 
-    private void deleteMarkerFromDatabase(String localIndex) {
+    private void deleteMarkerFromDatabase(int localIndex) {
         markerContract.deleteOneFromDb(localIndex);
         Toast.makeText(getContext(), "Marker deleted successfully!", Toast.LENGTH_SHORT).show();
     }
@@ -133,21 +135,21 @@ public class MarkerInfoFragment extends Fragment {
         Bundle args = getArguments();
         if (args != null) {
             String snippet = args.getString("snippet", "");
-            locationIndex = snippet;
-            HashMap<String, Object> marker = markerContract.readSingleFromDb(snippet);
+            locationIndex = Integer.parseInt(snippet);
+            CustomMarkerContract.MarkerEntryObj marker = markerContract.readSingleFromDb(locationIndex);
 
-            if (!marker.isEmpty()) {
+            if (!(marker == null)) {
                 // Print the contents of the marker HashMap
                 Log.d("Marker HashMap", "Marker HashMap: " + marker);
 
-                binding.titleTextView.setText(marker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_NAME).toString());
-                binding.subTitleTextView.setText(marker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_SHORTNAME).toString());
-                binding.descriptionTextView.setText(marker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LINK).toString());
+                binding.titleTextView.setText(marker.name);
+                binding.subTitleTextView.setText(marker.shortName);
+                binding.descriptionTextView.setText(marker.link);
 
-                String isDefaultMarker = marker.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_ISDEFAULTMARKER).toString();
-                if ("1".equals(isDefaultMarker)) {
-                    editButton.setVisibility(View.GONE);
-                    deleteButton.setVisibility(View.GONE);
+                int isDefaultMarker = marker.isDefaultMarker;
+                if (isDefaultMarker == 0) {
+                    editButton.setVisibility(View.VISIBLE);
+                    deleteButton.setVisibility(View.VISIBLE);
                 }
             }
         }

@@ -61,14 +61,11 @@ public class LocationInputFragment extends Fragment {
                 double latitude = locationCoordinates.latitude;
                 double longitude = locationCoordinates.longitude;
 
-                // Generate unique identifier for the marker entry
-                String entryId = UUID.randomUUID().toString();
-
                 // Save location details to the database
                 CustomMarkerContract.MarkerEntryObj newMarker = new CustomMarkerContract.MarkerEntryObj(
-                        entryId, name, shortName, description, String.valueOf(latitude), String.valueOf(longitude), "0"
+                        name, shortName, description, latitude, longitude, 0
                 );
-                markerContract.saveToDb(newMarker);
+                markerContract.saveNewMarker(newMarker);
                 Toast.makeText(requireContext(), "Location point created successfully!", Toast.LENGTH_SHORT).show();
 
                 // Navigate back to MapFragment

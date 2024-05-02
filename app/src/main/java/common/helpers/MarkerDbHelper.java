@@ -3,21 +3,21 @@ package common.helpers;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import com.example.campustouring.CustomMarkerContract;
 
 public class MarkerDbHelper extends SQLiteOpenHelper {
     public static final int DATABASE_VERSION = 1;
-    public static final String DATABASE_NAME = "CustomMarker.db";
+    public static final String DATABASE_NAME = "CustomMarkerDB.db";
     private static final String SQL_CREATE_ENTRIES =
             "CREATE TABLE " + CustomMarkerContract.MarkerEntry.TABLE_NAME + " (" +
                     CustomMarkerContract.MarkerEntry._ID + " INTEGER PRIMARY KEY," +
-                    CustomMarkerContract.MarkerEntry.COLUMN_NAME_LOCALINDEX + " INTEGER," +
                     CustomMarkerContract.MarkerEntry.COLUMN_NAME_NAME + " TEXT," +
                     CustomMarkerContract.MarkerEntry.COLUMN_NAME_SHORTNAME + " TEXT," +
                     CustomMarkerContract.MarkerEntry.COLUMN_NAME_LINK + " TEXT," +
-                    CustomMarkerContract.MarkerEntry.COLUMN_NAME_LAT + " TEXT," +
-                    CustomMarkerContract.MarkerEntry.COLUMN_NAME_LONG + " TEXT," +
+                    CustomMarkerContract.MarkerEntry.COLUMN_NAME_LATITUDE + " TEXT," +
+                    CustomMarkerContract.MarkerEntry.COLUMN_NAME_LONGITUDE + " TEXT," +
                     CustomMarkerContract.MarkerEntry.COLUMN_NAME_ISDEFAULTMARKER + " INTEGER)";
     private static final String SQL_DELETE_ENTRIES =
             "DROP TABLE IF EXISTS " + CustomMarkerContract.MarkerEntry.TABLE_NAME;

@@ -145,26 +145,37 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void printMarkersFromContract() {
-        List<HashMap<String, Object>> markerList = contract.readAllFromDb();
-        for (HashMap<String, Object> marker : markerList) {
-            Log.d("Marker from Contract", "Name: " + marker.get("name") +
-                    ", Latitude: " + marker.get("lat") +
-                    ", Longitude: " + marker.get("long"));
+        List<CustomMarkerContract.MarkerEntryObj> markerList = contract.readAllFromDb();
+        for (CustomMarkerContract.MarkerEntryObj marker : markerList) {
+            Log.d("Marker from Contract", "Name: " + marker.name +
+                    ", Latitude: " + marker.latitude +
+                    ", Longitude: " + marker.longitude);
         }
     }
 
     public void placePoints(GoogleMap googleMap) {
-        List<HashMap<String, Object>> customList = contract.readAllFromDb();
-
+        List<CustomMarkerContract.MarkerEntryObj> customList = contract.readAllFromDb();
+        CustomMarkerContract.MarkerEntryObj entry = contract.readSingleFromDb(1);
         // Clear existing markers
         googleMap.clear();
 
-        for (HashMap<String, Object> row : customList) {
-            String name = (String) row.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_NAME);
-            String snippet = String.valueOf(row.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LOCALINDEX));
-            double lat = (Double) row.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LAT);
-            double lng = (Double) row.get(CustomMarkerContract.MarkerEntry.COLUMN_NAME_LONG);
+        for (CustomMarkerContract.MarkerEntryObj row : customList) {
+            String name = row.name;
+            String snippet = String.valueOf(row._id);
+            double lat = row.latitude;
+            double lng = row.longitude;
 
+            LatLng coords = new LatLng(lat, lng);
+            googleMap.addMarker(new MarkerOptions()
+                    .position(coords)
+                    .title(name)
+                    .snippet(snippet));
+        }
+        for (CustomMarkerContract.MarkerEntryObj row : ((MainActivity)this.getActivity()).masterList) {
+            String name = row.name;
+            String snippet = String.valueOf(row._id);
+            double lat = row.latitude;
+            double lng = row.longitude;
             LatLng coords = new LatLng(lat, lng);
 
             googleMap.addMarker(new MarkerOptions()

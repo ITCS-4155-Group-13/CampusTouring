@@ -5,6 +5,8 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.util.Log;
 import android.view.View;
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
@@ -18,6 +20,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import com.example.campustouring.CustomMarkerContract;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -26,16 +32,17 @@ public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private boolean isARFragmentShown = false;
 
+    public List<CustomMarkerContract.MarkerEntryObj> masterList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         setSupportActionBar(binding.toolbar);
 
-        // Load CSV files and store in the database
+        // Load CSV files and store in the local variable
         loadCSVFiles();
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
@@ -98,11 +105,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Load CSV files and store in the database
     private void loadCSVFiles() {
-        CustomMarkerContract contract = new CustomMarkerContract(getApplicationContext());
-
-        //Delete All Entries
-        contract.clearDb();
-
+        masterList = new ArrayList<CustomMarkerContract.MarkerEntryObj>();
         // Loading All Default Points From CSV
         boolean firstLine = true;
         try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
@@ -114,25 +117,11 @@ public class MainActivity extends AppCompatActivity {
                 }
                 // Convert CSV data to MarkerEntryObj
                 CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(
-                        line[0], line[1], line[2], line[3], line[4], line[5], line[6]
+                        line[1], line[2], line[3], Double.parseDouble(line[4]), Double.parseDouble(line[5]), Integer.parseInt(line[6])
                 );
                 // Save marker to the database using the contract
-                contract.saveToDb(marker);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        // Loading All Custom User Points From CSV
-        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.users)), '~')) {
-            String[] line;
-            while ((line = reader.readNext()) != null) {
-                // Convert CSV data to MarkerEntryObj
-                CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(
-                        line[0], line[1], line[2], line[3], line[4], line[5]
-                );
-                // Save marker to the database using the contract
-                contract.saveToDb(marker);
+                this.masterList.add(marker);
             }
         } catch (Exception e) {
             e.printStackTrace();

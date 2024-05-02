@@ -11,6 +11,7 @@ import android.os.Bundle;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import android.util.Log;
@@ -176,6 +177,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
         View view = inflater.inflate(R.layout.fragment_a_r, container, false);
+        ((AppCompatActivity) getActivity()).getSupportActionBar().hide();
         return view;
     }
 
@@ -234,7 +236,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             session.close();
             session = null;
         }
-
+        ((AppCompatActivity) getActivity()).getSupportActionBar().show();
         super.onDestroy();
     }
 
@@ -798,15 +800,12 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     }
 
     public void loadCustomPoints() {
-        List<HashMap<String, Object>> customPointList = contract.readAllFromDb();
+        List<CustomMarkerContract.MarkerEntryObj> customPointList = contract.readAllFromDb();
 
-        for (HashMap<String, Object> row : customPointList) {
-            Double rowLat = ((Double)row.get("lat"));
-            Double rowLong = ((Double)row.get("long"));
-            int index = (int) row.get("localIndex");
-            Pose newPose = session.getEarth().getPose(rowLat, rowLong,
+        for (CustomMarkerContract.MarkerEntryObj row : customPointList) {
+            Pose newPose = session.getEarth().getPose(row.latitude, row.longitude,
                     session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
-            loadedAnchors.put(index, newPose);
+            loadedAnchors.put((int)(row._id), newPose);
         }
     }
     public void loadPoints() {

@@ -27,15 +27,14 @@
 
         <ImageView
             android:id="@+id/buildingImageView"
-            android:layout_width="300dp"
-            android:layout_height="300dp"
+            android:layout_width="314dp"
+            android:layout_height="176dp"
             android:layout_marginStart="142dp"
             android:layout_marginTop="50dp"
             android:layout_marginEnd="142dp"
             android:layout_marginBottom="60dp"
             app:layout_constraintBottom_toTopOf="@+id/titleTextView"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.502"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/unc_charlotte_main_logo"
@@ -63,8 +62,7 @@
             android:textSize="16sp"
             android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="@+id/deleteButton"
-            app:layout_constraintEnd_toStartOf="@+id/deleteButton"
-            app:layout_constraintStart_toStartOf="@+id/scrollEditDescriptionText"
+            app:layout_constraintStart_toStartOf="@+id/editTitleText"
             app:layout_constraintTop_toTopOf="@+id/deleteButton"
             app:layout_constraintVertical_bias="0.0"
             tools:visibility="visible" />
@@ -73,14 +71,12 @@
             android:id="@+id/deleteButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="200dp"
             android:backgroundTint="#F44336"
             android:text="@string/deleteText"
             android:textSize="16sp"
             android:visibility="invisible"
             app:backgroundTint="@android:color/black"
-            app:layout_constraintEnd_toEndOf="@+id/scrollEditDescriptionText"
-            app:layout_constraintStart_toEndOf="@+id/editButton"
+            app:layout_constraintEnd_toEndOf="@+id/editTitleText"
             app:layout_constraintTop_toBottomOf="@+id/scrollEditDescriptionText"
             tools:visibility="visible" />
 

@@ -27,15 +27,14 @@
 
         <ImageView
             android:id="@+id/buildingImageView"
-            android:layout_width="300dp"
-            android:layout_height="300dp"
+            android:layout_width="314dp"
+            android:layout_height="176dp"
             android:layout_marginStart="142dp"
             android:layout_marginTop="50dp"
             android:layout_marginEnd="142dp"
             android:layout_marginBottom="60dp"
             app:layout_constraintBottom_toTopOf="@+id/titleTextView"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.502"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/unc_charlotte_main_logo"
@@ -58,35 +57,28 @@
             android:id="@+id/editButton"
             android:layout_width="88dp"
             android:layout_height="48dp"
-            android:layout_marginStart="16dp"
             android:backgroundTint="#FFC107"
             android:text="@string/editText"
             android:textSize="16sp"
             android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="@+id/deleteButton"
-            app:layout_constraintEnd_toStartOf="@+id/deleteButton"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/editTitleText"
             app:layout_constraintTop_toTopOf="@+id/deleteButton"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintVertical_bias="0.0"
+            tools:visibility="visible" />
 
         <Button
             android:id="@+id/deleteButton"
-            android:layout_width="95dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="200dp"
-            android:layout_marginTop="325dp"
-            android:layout_marginEnd="18dp"
-            android:layout_marginBottom="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:backgroundTint="#F44336"
             android:text="@string/deleteText"
             android:textSize="16sp"
             android:visibility="invisible"
             app:backgroundTint="@android:color/black"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/editButton"
-            app:layout_constraintTop_toBottomOf="@+id/buildingImageView"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintEnd_toEndOf="@+id/editTitleText"
+            app:layout_constraintTop_toBottomOf="@+id/scrollEditDescriptionText"
+            tools:visibility="visible" />
 
         <EditText
             android:id="@+id/editTitleText"

@@ -1,5 +1,6 @@
 package com.example.campustouring;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -17,6 +18,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
 import android.util.Log;
@@ -70,6 +72,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import androidx.navigation.fragment.NavHostFragment;
 
 import common.helpers.CameraPermissionHelper;
 import common.helpers.DisplayRotationHelper;
@@ -101,7 +104,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     private static final float Z_NEAR = 0.1f;
     private static final float Z_FAR = 1000f;
 
-    private float minAnchorRange = 10.0f;
+    private float minAnchorRange = 50.0f;
     private boolean createdPos = false;
 
     private boolean defaultCreated = false;
@@ -181,11 +184,12 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     private final Object anchorsLock = new Object();
 
     private AssetManager assetManager;
+    private final MainActivity mainActivity = (MainActivity) getActivity();
+    private int entry;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-
         View view = inflater.inflate(R.layout.fragment_a_r, container, false);
         return view;
     }
@@ -241,12 +245,12 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     @Override
     public void onDestroy() {
+        super.onDestroy();
         if (session != null) {
             session.close();
             session = null;
         }
 
-        super.onDestroy();
     }
 
     @Override
@@ -465,17 +469,17 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         if (camera.getTrackingState() != TrackingState.TRACKING || state != State.LOCALIZED) {
             return;
         }
-        loadDefaultPoints();
+//        loadDefaultPoints();
 
-//        if(!createdPos){
-//            Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
-//            session.getEarth().getCameraGeospatialPose().getLongitude(),
-//                    session.getEarth().getCameraGeospatialPose().getAltitude() + 6f,
-//                    0,0,0,0);
-//            GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
-//            createAnchorWithGeospatialPose(-1, session.getEarth(), pose);
-//            createdPos = true;
-//        }
+        if(!createdPos){
+            Pose newPose = session.getEarth().getPose(session.getEarth().getCameraGeospatialPose().getLatitude(),
+            session.getEarth().getCameraGeospatialPose().getLongitude(),
+                    session.getEarth().getCameraGeospatialPose().getAltitude() + 6f,
+                    0,0,0,0);
+            GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
+            createAnchorWithGeospatialPose(1, session.getEarth(), pose);
+            createdPos = true;
+        }
 
         for (HashMap.Entry<Integer, Pose> entry : loadedAnchors.entrySet()) {
             if(calculateDistance(camera.getPose().getTranslation(), entry.getValue().getTranslation()) < minAnchorRange) {
@@ -491,13 +495,8 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             if(isFacingAnchor(camera.getPose(), entry.getValue())){
                 Log.i(TAG, "Facing " + entry.getKey() + " : " + entry.getValue().toString());
                 // if tapped send int associated with anchor to info frame
-                handleTap(frame, camera.getTrackingState(), entry.getValue());
-                Bundle args = new Bundle();
-                args.putString("snippet", entry.getKey().toString());
-                Navigation.findNavController(requireView()).navigate(
-                        R.id.action_MapFragment_to_MarkerInfoFragment,
-                        args
-                );
+                handleTap(frame, camera.getTrackingState(), entry.getKey());
+
             }
         }
         // -- Draw virtual objects
@@ -518,6 +517,8 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             Matrix.multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
             pointCloudShader.setMat4("u_ModelViewProjection", modelViewProjectionMatrix);
             render.draw(pointCloudMesh, pointCloudShader);
+        }catch (Exception e){
+            Log.e(TAG, "onDrawFrame: ", e);
         }
 
         // Visualize planes.
@@ -624,6 +625,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
             session.pause();
         }
     }
+
 
     // Return the scale in range [1, 2] after mapping a distance between camera and anchor to [2, 20].
     private float getScale(Pose anchorPose, Pose cameraPose) {
@@ -755,7 +757,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         editor.commit();
     }
 
-    private void handleTap(Frame frame, TrackingState cameraTrackingState, Anchor anchor) {
+    private void handleTap(Frame frame, TrackingState cameraTrackingState, int entry) {
         // Handle taps. Handling only one tap per frame, as taps are usually low frequency
         // compared to frame rate.
         synchronized (singleTapLock) {
@@ -773,9 +775,12 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                 return;
             }
 
-            Log.i(TAG, "handleTap: " + anchor.toString());
-
+            Log.i(TAG, "handleTap: " + entry);
+            Log.i(TAG, "LIFE CYCLE STATE: " + getLifecycle().getCurrentState());
+            this.entry = 1;
+            transitionToDetails(requireActivity());
             queuedSingleTap = null;
+
         }
     }
 
@@ -880,5 +885,37 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                         Math.pow(pos1[2] - pos2[2], 2)
         );
     }
+    private void transitionToDetails(Activity activity) {
+        Log.d("transitionToDetails", "transitionToDetails: is happening");
+        Log.d("transitionToDetails", "transitionToDetails: on pausing");
+        session.pause();
+        Log.d("transitionToDetails", "transitionToDetails: on paused");
+        for (Anchor anchor : session.getAllAnchors()) {
+            anchor.detach();
+        }
+        for (Trackable trackable : session.getAllTrackables(null)) {
+            trackable = null;
+        }
+        Log.d("transitionToDetails", "transitionToDetails: rendermode change");
+        surfaceView.setRenderMode(0);
+        Log.d("transitionToDetails", "transitionToDetails: rendermode changed");
+        Log.d("transitionToDetails", "transitionToDetails: session close");
+        session.close();
+        Log.d("transitionToDetails", "transitionToDetails: session closed");
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                NavController navController = Navigation.findNavController(activity, R.id.nav_host_fragment_content_main);
 
+                Bundle args = new Bundle();
+                args.putString("snippet", Integer.toString(entry));
+                Log.d("FROM AR TO INFO SCREEN", "transitionToDetails: ");
+                navController.navigate(
+                        R.id.action_ARFragment_to_MarkerInfoFragment,
+                        args
+                );
+            }
+        });
+
+    }
 }

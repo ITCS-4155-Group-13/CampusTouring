@@ -34,7 +34,7 @@ import common.samplerender.SampleRender;
 
 
 
-public class MainActivity extends AppCompatActivity{
+public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity{
         setSupportActionBar(binding.toolbar);
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        appBarConfiguration = new AppBarConfiguration.Builder(R.id.IntroductionFragment, R.id.MapFragment, R.id.ARFragment).build();
+        appBarConfiguration = new AppBarConfiguration.Builder(R.id.IntroductionFragment, R.id.MapFragment, R.id.ARFragment, R.id.MarkerInfoFragment).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
         binding.fab.setVisibility(View.GONE);
@@ -111,5 +111,15 @@ public class MainActivity extends AppCompatActivity{
     public boolean onSupportNavigateUp() {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         return navController.navigateUp() || super.onSupportNavigateUp();
+    }
+    public void arToDetails(int entry) {
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+
+        Bundle args = new Bundle();
+        args.putString("snippet", Integer.toString(entry));
+        navController.navigate(
+                R.id.action_ARFragment_to_MarkerInfoFragment,
+                args
+        );
     }
 }

@@ -67,26 +67,25 @@
             app:layout_constraintEnd_toStartOf="@+id/deleteButton"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@+id/deleteButton"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintVertical_bias="0.0"
+            tools:visibility="visible" />
 
         <Button
             android:id="@+id/deleteButton"
-            android:layout_width="95dp"
-            android:layout_height="48dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginStart="200dp"
             android:layout_marginTop="325dp"
             android:layout_marginEnd="18dp"
-            android:layout_marginBottom="8dp"
             android:backgroundTint="#F44336"
             android:text="@string/deleteText"
             android:textSize="16sp"
             android:visibility="invisible"
             app:backgroundTint="@android:color/black"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/editButton"
             app:layout_constraintTop_toBottomOf="@+id/buildingImageView"
-            app:layout_constraintVertical_bias="0.0" />
+            tools:visibility="visible" />
 
         <EditText
             android:id="@+id/editTitleText"

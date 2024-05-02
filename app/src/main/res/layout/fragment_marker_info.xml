@@ -38,8 +38,9 @@
             app:layout_constraintHorizontal_bias="0.502"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/UNC_Charlotte_Main_Logo"
-            tools:src="@drawable/UNC_Charlotte_Main_Logo" />
+            app:srcCompat="@drawable/unc_charlotte_main_logo"
+            tools:src="@drawable/unc_charlotte_main_logo"
+            tools:srcCompat="@drawable/unc_charlotte_main_logo" />
 
         <TextView
             android:id="@+id/subTitleTextView"
@@ -55,23 +56,23 @@
 
         <Button
             android:id="@+id/editButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="88dp"
+            android:layout_height="48dp"
             android:layout_marginStart="16dp"
             android:backgroundTint="#FFC107"
             android:text="@string/editText"
-            android:visibility="invisible"
             android:textSize="16sp"
+            android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="@+id/deleteButton"
             app:layout_constraintEnd_toStartOf="@+id/deleteButton"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/deleteButton" />
+            app:layout_constraintTop_toTopOf="@+id/deleteButton"
+            app:layout_constraintVertical_bias="0.0" />
 
         <Button
             android:id="@+id/deleteButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="invisible"
+            android:layout_width="95dp"
+            android:layout_height="48dp"
             android:layout_marginStart="200dp"
             android:layout_marginTop="325dp"
             android:layout_marginEnd="18dp"
@@ -79,11 +80,13 @@
             android:backgroundTint="#F44336"
             android:text="@string/deleteText"
             android:textSize="16sp"
+            android:visibility="invisible"
             app:backgroundTint="@android:color/black"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/editButton"
-            app:layout_constraintTop_toBottomOf="@+id/buildingImageView" />
+            app:layout_constraintTop_toBottomOf="@+id/buildingImageView"
+            app:layout_constraintVertical_bias="0.0" />
 
         <EditText
             android:id="@+id/editTitleText"

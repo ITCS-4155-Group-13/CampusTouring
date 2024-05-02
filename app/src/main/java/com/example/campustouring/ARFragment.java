@@ -3,7 +3,6 @@ package com.example.campustouring;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.location.Location;
 import android.opengl.GLSurfaceView;
@@ -14,8 +13,6 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.navigation.NavController;
@@ -27,9 +24,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.PopupMenu;
 
-import com.example.campustouring.databinding.FragmentARBinding;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -88,13 +83,9 @@ import common.samplerender.Texture;
 import common.samplerender.VertexBuffer;
 import common.samplerender.arcore.BackgroundRenderer;
 import common.samplerender.arcore.PlaneRenderer;
+import de.javagl.obj.Obj;
+
 import com.opencsv.CSVReader;
-
-import org.checkerframework.checker.units.qual.A;
-
-import java.io.IOException;
-import java.io.FileReader;
-import java.util.function.BiConsumer;
 
 public class ARFragment extends Fragment implements SampleRender.Renderer {
 
@@ -185,11 +176,13 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     private AssetManager assetManager;
     private final MainActivity mainActivity = (MainActivity) getActivity();
+    private CustomMarkerContract contract;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_a_r, container, false);
+        ((AppCompatActivity) getActivity()).getSupportActionBar().hide();
         return view;
     }
 
@@ -244,12 +237,12 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
         if (session != null) {
             session.close();
             session = null;
         }
-
+        ((AppCompatActivity) getActivity()).getSupportActionBar().show();
+        super.onDestroy();
     }
 
     @Override
@@ -320,7 +313,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
         if (session != null) {
             getLastLocation();
         }
-
+        contract = new CustomMarkerContract(this.getContext());
         // Note that order matters - see the note in onPause(), the reverse applies here.
         try {
             configureSession();
@@ -782,52 +775,46 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
     }
 
     public void loadDefaultPoints() {
-        Log.i(TAG, "loadDefaultPoints");
         if (!defaultCreated) {
-            Log.i(TAG, "loadDefaultPoints IF");
             try (CSVReader reader = new CSVReader (new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')){
-                Log.i(TAG, "loadDefaultPoints TRY");
-
                 List<String[]> rows = reader.readAll();
                 String[] headers = rows.remove(0); // Remove and store the header row
-
                 ArrayList<HashMap<String, String>> data = new ArrayList<>();
 
-                Log.i(TAG, "First loops" + headers);
                 for (String[] row : rows) {
-                    Log.i(TAG, "outer loops");
                     HashMap<String, String> rowData = new HashMap<>();
                     for (int i = 0; i < headers.length; i++) {
-                        Log.i(TAG, "inner loops" + row[i]);
                         rowData.put(headers[i], row[i]);
                     }
                     data.add(rowData);
                 }
 
-                // Print the data
-                Log.i(TAG, "Second loops");
                 for (HashMap<String, String> row : data) {
-                    System.out.println(row);
-                    Log.i(TAG, "loadDefaultPoints VALUE: " + row);
-                    Log.i(TAG, "loadDefaultPoints LATLONG: " + row.get("lat") +" "+ row.get("long"));
                     double rowLat = Double.parseDouble(row.get("lat"));
                     double rowLong = Double.parseDouble(row.get("long"));
-                    Log.i(TAG, "lat: " + row.get("lat") + "long: " + row.get("long"));
-                    Log.i(TAG, "rowlat: " + rowLat+ " " + "rowlong: " + rowLong);
-                    Pose newPose = session.getEarth().getPose(rowLat, rowLong,
-                            session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
-
+                    Pose newPose = session.getEarth().getPose(rowLat, rowLong, session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
                     loadedAnchors.put(Integer.parseInt(row.get("index")), newPose);
                 }
-
-                Log.i(TAG, "loadDefaultPoints TRY finish: " + data);
             } catch (Exception ex) {
                 Log.e("TAG", "loadDefaultPoints FAILED");
                 Log.e("TAG", ex.toString());
             }
             defaultCreated = true;
         }
-        Log.i(TAG, "loadDefaultPoints COMPLETE");
+    }
+
+    public void loadCustomPoints() {
+        List<CustomMarkerContract.MarkerEntryObj> customPointList = contract.readAllFromDb();
+
+        for (CustomMarkerContract.MarkerEntryObj row : customPointList) {
+            Pose newPose = session.getEarth().getPose(row.latitude, row.longitude,
+                    session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
+            loadedAnchors.put((int)(row._id), newPose);
+        }
+    }
+    public void loadPoints() {
+        loadDefaultPoints();
+        loadCustomPoints();
     }
 
 //    private ArrayList<Anchor> getAnchorsInRange(Pose cameraPose) {

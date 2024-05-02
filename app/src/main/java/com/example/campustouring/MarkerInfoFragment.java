@@ -15,18 +15,8 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.example.campustouring.databinding.FragmentMarkerInfoBinding;
-import com.example.campustouring.databinding.FragmentSettingsBinding;
-import com.google.android.gms.maps.GoogleMap;
-import com.opencsv.CSVReader;
-import com.opencsv.CSVWriter;
+import java.util.HashMap;
 
-import org.apache.commons.lang3.ObjectUtils;
-
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MarkerInfoFragment extends Fragment {
 
@@ -34,7 +24,8 @@ public class MarkerInfoFragment extends Fragment {
     private Button editButton;
     private Button deleteButton;
     private boolean isEditMode = false;
-    private String[] location;
+    private int locationIndex;
+    private CustomMarkerContract markerContract;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -44,11 +35,13 @@ public class MarkerInfoFragment extends Fragment {
         deleteButton = binding.deleteButton;
         updateButtonState();
 
+        markerContract = new CustomMarkerContract(getContext());
+
         editButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (isEditMode) {
-                    saveChangesToCSV();
+                    updateMarkerInfoInDatabase();
                 }
                 isEditMode = !isEditMode;
                 updateButtonState();
@@ -58,7 +51,7 @@ public class MarkerInfoFragment extends Fragment {
         deleteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                deleteLineFromCSV(Integer.parseInt(location[0]));
+                deleteMarkerFromDatabase(locationIndex);
                 getParentFragmentManager().popBackStack();
             }
         });
@@ -71,11 +64,11 @@ public class MarkerInfoFragment extends Fragment {
             editButton.setText(R.string.saveText);
             editButton.setBackgroundColor(Color.parseColor("#005035"));
 
-            binding.editTitleText.setText(location[1]);
+            binding.editTitleText.setText(binding.titleTextView.getText().toString());
             binding.editTitleText.setVisibility(View.VISIBLE);
-            binding.editSubTitleText.setText(location[2]);
+            binding.editSubTitleText.setText(binding.subTitleTextView.getText().toString());
             binding.editSubTitleText.setVisibility(View.VISIBLE);
-            binding.editDescriptionText.setText(location[3]);
+            binding.editDescriptionText.setText(binding.descriptionTextView.getText().toString());
             binding.editDescriptionText.setVisibility(View.VISIBLE);
             binding.scrollEditDescriptionText.setVisibility(View.VISIBLE);
 
@@ -99,86 +92,41 @@ public class MarkerInfoFragment extends Fragment {
         }
     }
 
-    private void saveChangesToCSV() {
-        try (InputStreamReader inputStreamReader = new InputStreamReader(getResources().openRawResource(R.raw.master));
-             CSVReader reader = new CSVReader(inputStreamReader, '~');
-             OutputStreamWriter outputStreamWriter = new OutputStreamWriter(getContext().openFileOutput("temp.csv", getContext().MODE_PRIVATE));
-             CSVWriter writer = new CSVWriter(outputStreamWriter, '~')) {
+    private void updateMarkerInfoInDatabase() {
+        String title = binding.editTitleText.getText().toString();
+        String subtitle = binding.editSubTitleText.getText().toString();
+        String description = binding.editDescriptionText.getText().toString();
 
-            String[] line;
-            while ((line = reader.readNext()) != null) {
-                if (line[0].equals(location[0])) {
-                    // Log the current values
-                    Log.d("MarkerInfoFragment", "Current values - Title: " + line[1] + ", Subtitle: " + line[2] + ", Description: " + line[3]);
+        // Retrieve existing marker information
+        CustomMarkerContract.MarkerEntryObj existingMarker = markerContract.readSingleFromDb(locationIndex);
 
-                    // Update values from EditText fields
-                    line[1] = binding.editTitleText.getText().toString();
-                    line[2] = binding.editSubTitleText.getText().toString();
-                    line[3] = binding.editDescriptionText.getText().toString();
+        // Ensure existing latitude and longitude are preserved
+        // Create updated marker object
+        CustomMarkerContract.MarkerEntryObj updatedMarker = new CustomMarkerContract.MarkerEntryObj(
+                title,
+                subtitle,
+                description,
+                existingMarker.latitude,
+                existingMarker.longitude,
+                existingMarker.isDefaultMarker
+        );
+        updatedMarker._id = existingMarker._id;
 
-                    // Log the updated values
-                    Log.d("MarkerInfoFragment", "Updated values - Title: " + line[1] + ", Subtitle: " + line[2] + ", Description: " + line[3]);
-                }
-                writer.writeNext(line);
-            }
+        // Update marker information in the database
+        markerContract.updateMarker(updatedMarker);
 
-            // Delete old file and rename the new file
-            getContext().deleteFile("master.csv");
-            getContext().getFileStreamPath("temp.csv").renameTo(getContext().getFileStreamPath("master.csv"));
+        // Update UI with the new information
+        binding.titleTextView.setText(title);
+        binding.subTitleTextView.setText(subtitle);
+        binding.descriptionTextView.setText(description);
 
-            Toast.makeText(getContext(), "Changes saved successfully!", Toast.LENGTH_SHORT).show();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(getContext(), "Error saving changes!", Toast.LENGTH_SHORT).show();
-        }
+        Toast.makeText(getContext(), "Marker info updated successfully!", Toast.LENGTH_SHORT).show();
     }
 
-    private void deleteLineFromCSV(int indexToDelete) {
-        try (InputStreamReader inputStreamReader = new InputStreamReader(getResources().openRawResource(R.raw.master));
-             CSVReader reader = new CSVReader(inputStreamReader, '~');
-             OutputStreamWriter outputStreamWriter = new OutputStreamWriter(getContext().openFileOutput("temp.csv", getContext().MODE_PRIVATE));
-             CSVWriter writer = new CSVWriter(outputStreamWriter, '~')) {
-
-            String[] line;
-            int currentIndex = 0;
-
-            while ((line = reader.readNext()) != null) {
-                if (currentIndex != indexToDelete) {
-                    writer.writeNext(line);
-                }
-                currentIndex++;
-            }
-
-            // Delete old file and rename the new file
-            getContext().deleteFile("master.csv");
-            getContext().getFileStreamPath("temp.csv").renameTo(getContext().getFileStreamPath("master.csv"));
-
-            Toast.makeText(getContext(), "Line deleted successfully!", Toast.LENGTH_SHORT).show();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(getContext(), "Error deleting line!", Toast.LENGTH_SHORT).show();
-        }
+    private void deleteMarkerFromDatabase(int localIndex) {
+        markerContract.deleteOneFromDb(localIndex);
+        Toast.makeText(getContext(), "Marker deleted successfully!", Toast.LENGTH_SHORT).show();
     }
-
-
-    public String[] searchCSV(String locationIndex) {
-        try (CSVReader reader = new CSVReader(new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')) {
-            String[] line;
-            while ((line = reader.readNext()) != null) {
-                if (line[0].equals(locationIndex)) {
-                    return line;
-                }
-            }
-            return new String[0]; // Return an empty array
-        } catch (IOException e) {
-            // Handle the exception (e.g., log an error message)
-            e.printStackTrace();
-            return new String[0]; // Return an empty array
-        }
-    }
-
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -188,15 +136,40 @@ public class MarkerInfoFragment extends Fragment {
         Bundle args = getArguments();
         if (args != null) {
             String snippet = args.getString("snippet", "");
-            location = searchCSV(snippet);
-            binding.titleTextView.setText(location[1]);
-            binding.subTitleTextView.setText(location[2]);
-            binding.descriptionTextView.setText(location[3]);
+            locationIndex = Integer.parseInt(snippet);
+            CustomMarkerContract.MarkerEntryObj marker = markerContract.readSingleFromDb(locationIndex);
+
+            if (!(marker == null)) {
+                // Print the contents of the marker HashMap
+                Log.d("Marker HashMap", "Marker HashMap: " + marker);
+
+                binding.titleTextView.setText(marker.name);
+                binding.subTitleTextView.setText(marker.shortName);
+                binding.descriptionTextView.setText(marker.link);
+
+                int isDefaultMarker = marker.isDefaultMarker;
+                if (isDefaultMarker == 0) {
+                    editButton.setVisibility(View.VISIBLE);
+                    deleteButton.setVisibility(View.VISIBLE);
+                }
+            } else {
+                for (CustomMarkerContract.MarkerEntryObj entry : ((MainActivity) getActivity()).masterList) {
+                    if (entry._id == locationIndex) {
+                        binding.titleTextView.setText(entry.name);
+                        binding.subTitleTextView.setText(entry.shortName);
+                        binding.descriptionTextView.setText(entry.link);
+
+                        int isDefaultMarker = entry.isDefaultMarker;
+                        if (isDefaultMarker == 0) {
+                            editButton.setVisibility(View.VISIBLE);
+                            deleteButton.setVisibility(View.VISIBLE);
+                        }
+
+                    }
+
+                }
+            }
         }
     }
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        binding = null;
-    }
 }
+

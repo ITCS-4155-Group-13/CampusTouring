@@ -89,4 +89,13 @@
             android:id="@+id/action_LocationInputFragment_to_MapFragment"
             app:destination="@id/MapFragment" />
     </fragment>
+    <fragment
+        android:id="@+id/allMarkersFragment"
+        android:name="com.example.campustouring.AllMarkersFragment"
+        android:label="All Default Markers"
+        tools:layout="@layout/fragment_all_markers_list">
+    <action
+        android:id="@+id/action_AllMarkersFragment_to_MarkerInfoFragment"
+        app:destination="@id/MarkerInfoFragment" />
+    </fragment>
 </navigation>

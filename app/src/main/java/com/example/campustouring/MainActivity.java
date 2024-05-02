@@ -117,10 +117,9 @@ public class MainActivity extends AppCompatActivity {
                 }
                 // Convert CSV data to MarkerEntryObj
                 CustomMarkerContract.MarkerEntryObj marker = new CustomMarkerContract.MarkerEntryObj(
-                        line[1], line[2], line[3], Double.parseDouble(line[4]), Double.parseDouble(line[5]), Integer.parseInt(line[6])
+                        Long.parseLong(line[0]), line[1], line[2], line[3], Double.parseDouble(line[4]), Double.parseDouble(line[5]), Integer.parseInt(line[6])
                 );
                 // Save marker to the database using the contract
-
                 this.masterList.add(marker);
             }
         } catch (Exception e) {

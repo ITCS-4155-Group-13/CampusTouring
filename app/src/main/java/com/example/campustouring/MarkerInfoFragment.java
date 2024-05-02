@@ -151,12 +151,24 @@ public class MarkerInfoFragment extends Fragment {
                     editButton.setVisibility(View.VISIBLE);
                     deleteButton.setVisibility(View.VISIBLE);
                 }
+            } else {
+                for (CustomMarkerContract.MarkerEntryObj entry : ((MainActivity) getActivity()).masterList) {
+                    if (entry._id == locationIndex) {
+                        binding.titleTextView.setText(entry.name);
+                        binding.subTitleTextView.setText(entry.shortName);
+                        binding.descriptionTextView.setText(entry.link);
+
+                        int isDefaultMarker = entry.isDefaultMarker;
+                        if (isDefaultMarker == 0) {
+                            editButton.setVisibility(View.VISIBLE);
+                            deleteButton.setVisibility(View.VISIBLE);
+                        }
+
+                    }
+
+                }
             }
         }
     }
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        binding = null;
-    }
 }
+

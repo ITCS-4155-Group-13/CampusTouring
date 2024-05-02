@@ -772,29 +772,12 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     public void loadDefaultPoints() {
         if (!defaultCreated) {
-            try (CSVReader reader = new CSVReader (new InputStreamReader(getResources().openRawResource(R.raw.master)), '~')){
-                List<String[]> rows = reader.readAll();
-                String[] headers = rows.remove(0); // Remove and store the header row
-                ArrayList<HashMap<String, String>> data = new ArrayList<>();
+                List<CustomMarkerContract.MarkerEntryObj> data = ((MainActivity)this.getActivity()).masterList;
 
-                for (String[] row : rows) {
-                    HashMap<String, String> rowData = new HashMap<>();
-                    for (int i = 0; i < headers.length; i++) {
-                        rowData.put(headers[i], row[i]);
-                    }
-                    data.add(rowData);
+                for (CustomMarkerContract.MarkerEntryObj row : data) {
+                    Pose newPose = session.getEarth().getPose(row.latitude, row.longitude, session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
+                    loadedAnchors.put((int) row._id, newPose);
                 }
-
-                for (HashMap<String, String> row : data) {
-                    double rowLat = Double.parseDouble(row.get("lat"));
-                    double rowLong = Double.parseDouble(row.get("long"));
-                    Pose newPose = session.getEarth().getPose(rowLat, rowLong, session.getEarth().getCameraGeospatialPose().getAltitude(), 0,0,0,0);
-                    loadedAnchors.put(Integer.parseInt(row.get("index")), newPose);
-                }
-            } catch (Exception ex) {
-                Log.e("TAG", "loadDefaultPoints FAILED");
-                Log.e("TAG", ex.toString());
-            }
             defaultCreated = true;
         }
     }

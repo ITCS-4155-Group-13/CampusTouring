@@ -185,7 +185,6 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
 
     private AssetManager assetManager;
     private final MainActivity mainActivity = (MainActivity) getActivity();
-    private int entry;
 
     @Nullable
     @Override
@@ -477,7 +476,7 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                     session.getEarth().getCameraGeospatialPose().getAltitude() + 6f,
                     0,0,0,0);
             GeospatialPose pose = session.getEarth().getGeospatialPose(newPose);
-            createAnchorWithGeospatialPose(1, session.getEarth(), pose);
+            createAnchorWithGeospatialPose(20, session.getEarth(), pose);
             createdPos = true;
         }
 
@@ -775,10 +774,8 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                 return;
             }
 
-            Log.i(TAG, "handleTap: " + entry);
-            Log.i(TAG, "LIFE CYCLE STATE: " + getLifecycle().getCurrentState());
-            this.entry = 1;
-            transitionToDetails(requireActivity());
+
+            transitionToDetails(requireActivity(), entry);
             queuedSingleTap = null;
 
         }
@@ -885,31 +882,22 @@ public class ARFragment extends Fragment implements SampleRender.Renderer {
                         Math.pow(pos1[2] - pos2[2], 2)
         );
     }
-    private void transitionToDetails(Activity activity) {
-        Log.d("transitionToDetails", "transitionToDetails: is happening");
-        Log.d("transitionToDetails", "transitionToDetails: on pausing");
+    private void transitionToDetails(Activity activity, int entry) {
         session.pause();
-        Log.d("transitionToDetails", "transitionToDetails: on paused");
         for (Anchor anchor : session.getAllAnchors()) {
             anchor.detach();
         }
         for (Trackable trackable : session.getAllTrackables(null)) {
             trackable = null;
         }
-        Log.d("transitionToDetails", "transitionToDetails: rendermode change");
         surfaceView.setRenderMode(0);
-        Log.d("transitionToDetails", "transitionToDetails: rendermode changed");
-        Log.d("transitionToDetails", "transitionToDetails: session close");
         session.close();
-        Log.d("transitionToDetails", "transitionToDetails: session closed");
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 NavController navController = Navigation.findNavController(activity, R.id.nav_host_fragment_content_main);
-
                 Bundle args = new Bundle();
                 args.putString("snippet", Integer.toString(entry));
-                Log.d("FROM AR TO INFO SCREEN", "transitionToDetails: ");
                 navController.navigate(
                         R.id.action_ARFragment_to_MarkerInfoFragment,
                         args
